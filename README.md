@@ -11,7 +11,7 @@ Whether you use head-tracking software, upscalers, dashboard overlays, telemetry
   - **Running Apps Picker** — select any app you currently have open
   - **Installed Apps Picker** — searchable list of Start Menu shortcuts, Steam apps, and installed programs
   - **Browse / Custom Entry** — choose any `.exe`, `.lnk`, `.bat`, or `steam://rungameid/...` URL
-- **Quick-Add Presets:** Optional one-click presets with automatic path detection for popular trucking tools (Lossless Scaling, LookPilot, WestPlay, OpenTrack, TrackIR, SimHub, TruckersMP, TrucksBook, CrewChief, OBS Studio, Discord).
+- **Quick-Add Presets:** Optional one-click presets with automatic path detection for popular trucking tools (Lossless Scaling, Beam Eye Tracker, LookPilot, WestPlay, OpenTrack, TrackIR, SimHub, TruckersMP, TrucksBook, CrewChief, OBS Studio, Discord).
 - **No Duplicate Launches:** Checks if a companion app is already running before starting it.
 - **Per-App Launch Delay & Auto-Close:** Set an individual delay (in seconds) for each app and optionally close apps automatically when the game exits.
 - **System Tray & Windows Startup:** Minimizes quietly to the system tray with a live status-colored icon and supports starting minimized with Windows.

@@ -15,6 +15,15 @@ public static class AppPresets
         },
         new()
         {
+            Id = "preset-beam-eye-tracker",
+            Name = "Beam Eye Tracker",
+            ProcessName = "BeamEyeTracker",
+            LaunchDelaySeconds = 1,
+            SearchHints = new List<string> { "BeamEyeTracker", "Beam Eye Tracker", "EyewareBeam" },
+            SteamAppId = "2375780"
+        },
+        new()
+        {
             Id = "preset-lookpilot",
             Name = "LookPilot",
             ProcessName = "LookPilot",
