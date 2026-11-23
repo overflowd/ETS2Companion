@@ -56,7 +56,7 @@ public sealed class AppEditDialog : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true,
+            WrapContents = false,
             Margin = new Padding(0, 0, 0, 12)
         };
 

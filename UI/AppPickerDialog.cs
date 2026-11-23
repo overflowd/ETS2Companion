@@ -74,7 +74,7 @@ public sealed class AppPickerDialog : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true,
+            WrapContents = false,
             Margin = new Padding(0)
         };
 
