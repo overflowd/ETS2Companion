@@ -31,7 +31,7 @@ public static class StartupService
             var exePath = Environment.ProcessPath;
             if (string.IsNullOrWhiteSpace(exePath))
             {
-                throw new InvalidOperationException("Uygulama yürütülebilir dosya yolu alınamadı.");
+                throw new InvalidOperationException("Unable to determine the application executable path.");
             }
 
             key.SetValue(AppRegistryName, $"\"{exePath}\" --minimized");

@@ -53,7 +53,7 @@ public sealed class MainForm : Form
         _runningIcon = IconFactory.CreateAppIcon(TrayIconState.GameRunning);
         _pausedIcon = IconFactory.CreateAppIcon(TrayIconState.Paused);
 
-        Text = "ETS 2 Otomatik Uygulama Başlatıcı";
+        Text = "ETS 2 Companion Launcher";
         Icon = _watchingIcon;
         MinimumSize = new Size(860, 610);
         Size = new Size(920, 650);
@@ -64,12 +64,12 @@ public sealed class MainForm : Form
 
         // --- System Tray ---
         var trayMenu = new ContextMenuStrip();
-        var openItem = new ToolStripMenuItem("Pencereyi Aç", null, (_, _) => RestoreFromTray());
+        var openItem = new ToolStripMenuItem("Open Window", null, (_, _) => RestoreFromTray());
         openItem.Font = new Font(openItem.Font, FontStyle.Bold);
-        var launchNowTrayItem = new ToolStripMenuItem("Uygulamaları Şimdi Başlat", null, async (_, _) => await RunManualLaunchAsync());
-        var detectTrayItem = new ToolStripMenuItem("Uygulamaları Otomatik Bul", null, async (_, _) => await RunAutoDetectAsync(forceRescan: false));
-        _trayPauseItem = new ToolStripMenuItem("İzlemeyi Duraklat", null, (_, _) => TogglePause());
-        var exitItem = new ToolStripMenuItem("Çıkış", null, (_, _) => ExitApplication());
+        var launchNowTrayItem = new ToolStripMenuItem("Launch Apps Now", null, async (_, _) => await RunManualLaunchAsync());
+        var detectTrayItem = new ToolStripMenuItem("Auto-Detect Apps", null, async (_, _) => await RunAutoDetectAsync(forceRescan: false));
+        _trayPauseItem = new ToolStripMenuItem("Pause Watching", null, (_, _) => TogglePause());
+        var exitItem = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
 
         trayMenu.Items.AddRange(new ToolStripItem[]
         {
@@ -85,7 +85,7 @@ public sealed class MainForm : Form
         _trayIcon = new NotifyIcon
         {
             Icon = _watchingIcon,
-            Text = "ETS 2 Otomatik Başlatıcı — ETS 2 bekleniyor",
+            Text = "ETS 2 Companion Launcher — Waiting for ETS 2",
             ContextMenuStrip = trayMenu,
             Visible = true
         };
@@ -119,7 +119,7 @@ public sealed class MainForm : Form
 
         var titleLabel = new Label
         {
-            Text = "ETS 2 Otomatik Uygulama Başlatıcı",
+            Text = "ETS 2 Companion Launcher",
             Font = new Font("Segoe UI", 13.5f, FontStyle.Bold),
             ForeColor = TextPrimary,
             AutoSize = true,
@@ -128,7 +128,7 @@ public sealed class MainForm : Form
 
         var subtitleLabel = new Label
         {
-            Text = "Euro Truck Simulator 2 açıldığında Lossless Scaling, LookPilot ve WestPlay otomatik başlatılır.",
+            Text = "Automatically launches your companion apps when Euro Truck Simulator 2 starts.",
             Font = new Font("Segoe UI", 8.8f),
             ForeColor = TextMuted,
             AutoSize = true,
@@ -137,7 +137,7 @@ public sealed class MainForm : Form
 
         _statusBadge = new Label
         {
-            Text = "●  ETS 2 Bekleniyor",
+            Text = "●  Waiting for ETS 2",
             Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
             ForeColor = AccentBlue,
             BackColor = ElevatedDark,
@@ -162,19 +162,19 @@ public sealed class MainForm : Form
             Margin = new Padding(0, 0, 0, 6)
         };
 
-        _autoDetectBtn = CreateActionButton("Otomatik Bul", 0, 4, 125, ElevatedDark, AccentBlue);
+        _autoDetectBtn = CreateActionButton("Auto-Detect", 0, 4, 120, ElevatedDark, AccentBlue);
         _autoDetectBtn.Click += async (_, _) => await RunAutoDetectAsync(forceRescan: true);
 
-        var editBtn = CreateActionButton("Düzenle", 133, 4, 96, SurfaceDark, TextPrimary);
+        var editBtn = CreateActionButton("Edit", 128, 4, 86, SurfaceDark, TextPrimary);
         editBtn.Click += (_, _) => EditSelectedApp();
 
-        var addBtn = CreateActionButton("Ekle", 237, 4, 82, SurfaceDark, TextPrimary);
+        var addBtn = CreateActionButton("Add", 222, 4, 80, SurfaceDark, TextPrimary);
         addBtn.Click += (_, _) => AddNewApp();
 
-        var removeBtn = CreateActionButton("Sil", 327, 4, 74, SurfaceDark, DangerRed);
+        var removeBtn = CreateActionButton("Remove", 310, 4, 84, SurfaceDark, DangerRed);
         removeBtn.Click += (_, _) => DeleteSelectedApp();
 
-        _launchNowBtn = CreateActionButton("Şimdi Başlat (Test)", toolbarPanel.Width - 165, 4, 165, AccentBlue, Color.FromArgb(15, 23, 42));
+        _launchNowBtn = CreateActionButton("Launch Now (Test)", toolbarPanel.Width - 165, 4, 165, AccentBlue, Color.FromArgb(15, 23, 42));
         _launchNowBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
         _launchNowBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _launchNowBtn.Click += async (_, _) => await RunManualLaunchAsync();
@@ -206,7 +206,7 @@ public sealed class MainForm : Form
 
         _startupCheck = new CheckBox
         {
-            Text = "Windows ile birlikte sistem tepsisinde başlat",
+            Text = "Start minimized with Windows",
             Location = new Point(14, 12),
             AutoSize = true,
             ForeColor = TextPrimary,
@@ -216,8 +216,8 @@ public sealed class MainForm : Form
 
         _notifyCheck = new CheckBox
         {
-            Text = "Bildirim balonu göster",
-            Location = new Point(350, 12),
+            Text = "Show tray notifications",
+            Location = new Point(260, 12),
             AutoSize = true,
             ForeColor = TextPrimary,
             Checked = _config.ShowNotifications
@@ -231,8 +231,8 @@ public sealed class MainForm : Form
 
         _pauseCheck = new CheckBox
         {
-            Text = "İzlemeyi duraklat",
-            Location = new Point(545, 12),
+            Text = "Pause watching",
+            Location = new Point(460, 12),
             AutoSize = true,
             ForeColor = WarningAmber
         };
@@ -244,7 +244,7 @@ public sealed class MainForm : Form
 
         var watchLabel = new Label
         {
-            Text = "İzlenen oyun işlemi (virgülle çoğaltılabilir):",
+            Text = "Watched game process(es):",
             Location = new Point(14, 44),
             AutoSize = true,
             ForeColor = TextMuted
@@ -253,21 +253,21 @@ public sealed class MainForm : Form
         _watchedProcessBox = new TextBox
         {
             Text = _config.WatchedProcesses,
-            Location = new Point(280, 41),
+            Location = new Point(195, 41),
             Size = new Size(260, 24),
             BackColor = ElevatedDark,
             ForeColor = TextPrimary,
             BorderStyle = BorderStyle.FixedSingle
         };
 
-        var saveProcessBtn = CreateActionButton("Uygula", 548, 39, 82, ElevatedDark, AccentBlue);
+        var saveProcessBtn = CreateActionButton("Apply", 463, 39, 80, ElevatedDark, AccentBlue);
         saveProcessBtn.Height = 26;
         saveProcessBtn.Click += SaveWatchedProcess_Click;
 
         var configHint = new Label
         {
-            Text = "Örn: eurotrucks2, amtrucks",
-            Location = new Point(640, 44),
+            Text = "Comma-separated, e.g. eurotrucks2, amtrucks",
+            Location = new Point(553, 44),
             AutoSize = true,
             ForeColor = TextMuted,
             Font = new Font("Segoe UI", 8.5f)
@@ -291,7 +291,7 @@ public sealed class MainForm : Form
 
         var logHeader = new Label
         {
-            Text = "Etkinlik Günlüğü",
+            Text = "Activity Log",
             Dock = DockStyle.Top,
             Height = 22,
             ForeColor = TextMuted,
@@ -312,12 +312,12 @@ public sealed class MainForm : Form
 
         var clearLogBtn = new LinkLabel
         {
-            Text = "Temizle",
+            Text = "Clear",
             AutoSize = true,
             LinkColor = AccentBlue,
             ActiveLinkColor = TextPrimary,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(logContainer.Width - 68, 8)
+            Location = new Point(logContainer.Width - 54, 8)
         };
         clearLogBtn.Click += (_, _) => _logBox.Clear();
 
@@ -398,8 +398,8 @@ public sealed class MainForm : Form
         {
             _trayIcon.ShowBalloonTip(
                 3000,
-                "ETS 2 Başlatıcı",
-                "Uygulama arka planda sistem tepsisinde çalışmaya devam ediyor. Tamamen kapatmak için tepsi simgesine sağ tıklayıp Çıkış'ı seçin.",
+                "ETS 2 Companion Launcher",
+                "Still running in the system tray. Right-click the tray icon and select Exit to close completely.",
                 ToolTipIcon.Info);
         }
     }
@@ -418,8 +418,8 @@ public sealed class MainForm : Form
     private async Task RunAutoDetectAsync(bool forceRescan)
     {
         _autoDetectBtn.Enabled = false;
-        _autoDetectBtn.Text = "Aranıyor...";
-        AppendLog($"[{DateTime.Now:HH:mm:ss}] Yüklü uygulamalar taranıyor...");
+        _autoDetectBtn.Text = "Scanning...";
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] Scanning for installed companion apps...");
 
         try
         {
@@ -449,7 +449,7 @@ public sealed class MainForm : Form
                         }
 
                         foundCount++;
-                        AppendLog($"[{DateTime.Now:HH:mm:ss}] '{app.Name}' bulundu ({result.Source}): {result.Path}");
+                        AppendLog($"[{DateTime.Now:HH:mm:ss}] Found '{app.Name}' ({result.Source}): {result.Path}");
                     }
                     else
                     {
@@ -463,18 +463,18 @@ public sealed class MainForm : Form
 
             if (foundCount > 0)
             {
-                AppendLog($"[{DateTime.Now:HH:mm:ss}] Otomatik tarama tamamlandı: {foundCount} uygulama bulundu.");
+                AppendLog($"[{DateTime.Now:HH:mm:ss}] Auto-detection completed: {foundCount} app(s) found.");
             }
 
             if (missingNames.Count > 0)
             {
-                AppendLog($"[{DateTime.Now:HH:mm:ss}] Bulunamayanlar: {string.Join(", ", missingNames)}. 'Düzenle' ile .exe dosyasını elle seçebilirsiniz.");
+                AppendLog($"[{DateTime.Now:HH:mm:ss}] Not found: {string.Join(", ", missingNames)}. Select a row and click 'Edit' to browse for its .exe manually.");
             }
         }
         finally
         {
             _autoDetectBtn.Enabled = true;
-            _autoDetectBtn.Text = "Otomatik Bul";
+            _autoDetectBtn.Text = "Auto-Detect";
         }
     }
 
@@ -483,7 +483,7 @@ public sealed class MainForm : Form
         _launchNowBtn.Enabled = false;
         try
         {
-            await _watcher.LaunchEnabledAppsAsync("Manuel başlatma");
+            await _watcher.LaunchEnabledAppsAsync("Manual launch");
         }
         finally
         {
@@ -509,7 +509,7 @@ public sealed class MainForm : Form
             _config.Apps.Add(dialog.ResultApp);
             SaveConfig();
             RefreshGrid();
-            AppendLog($"[{DateTime.Now:HH:mm:ss}] '{dialog.ResultApp.Name}' listeye eklendi.");
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] Added '{dialog.ResultApp.Name}'.");
         }
     }
 
@@ -518,7 +518,7 @@ public sealed class MainForm : Form
         var selected = GetSelectedApp();
         if (selected is null)
         {
-            MessageBox.Show(this, "Lütfen düzenlemek için listeden bir uygulama seçin.", "Seçim Yok", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this, "Please select an application from the list to edit.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -531,7 +531,7 @@ public sealed class MainForm : Form
                 _config.Apps[index] = dialog.ResultApp;
                 SaveConfig();
                 RefreshGrid();
-                AppendLog($"[{DateTime.Now:HH:mm:ss}] '{dialog.ResultApp.Name}' ayarları güncellendi.");
+                AppendLog($"[{DateTime.Now:HH:mm:ss}] Updated settings for '{dialog.ResultApp.Name}'.");
             }
         }
     }
@@ -546,8 +546,8 @@ public sealed class MainForm : Form
 
         var confirm = MessageBox.Show(
             this,
-            $"'{selected.Name}' uygulamasını listeden kaldırmak istediğinize emin misiniz?",
-            "Silme Onayı",
+            $"Are you sure you want to remove '{selected.Name}' from the list?",
+            "Confirm Removal",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Question);
 
@@ -556,7 +556,7 @@ public sealed class MainForm : Form
             _config.Apps.RemoveAll(a => a.Id == selected.Id);
             SaveConfig();
             RefreshGrid();
-            AppendLog($"[{DateTime.Now:HH:mm:ss}] '{selected.Name}' listeden kaldırıldı.");
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] Removed '{selected.Name}'.");
         }
     }
 
@@ -578,15 +578,15 @@ public sealed class MainForm : Form
         {
             StartupService.SetEnabled(_startupCheck.Checked);
             AppendLog(_startupCheck.Checked
-                ? $"[{DateTime.Now:HH:mm:ss}] Windows başlangıcında otomatik çalışma etkinleştirildi."
-                : $"[{DateTime.Now:HH:mm:ss}] Windows başlangıcında otomatik çalışma kapatıldı.");
+                ? $"[{DateTime.Now:HH:mm:ss}] Enabled Windows startup (minimized to tray)."
+                : $"[{DateTime.Now:HH:mm:ss}] Disabled Windows startup.");
         }
         catch (Exception ex)
         {
             _suppressUiEvents = true;
             _startupCheck.Checked = StartupService.IsEnabled();
             _suppressUiEvents = false;
-            MessageBox.Show(this, $"Başlangıç ayarı değiştirilemedi: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, $"Failed to update Windows startup setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -601,7 +601,7 @@ public sealed class MainForm : Form
 
         _config.WatchedProcesses = value;
         SaveConfig();
-        AppendLog($"[{DateTime.Now:HH:mm:ss}] İzlenen oyun işlemi güncellendi: {value}");
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] Updated watched process(es): {value}");
     }
 
     private void SaveConfig()
@@ -613,7 +613,7 @@ public sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog($"[{DateTime.Now:HH:mm:ss}] HATA: Ayarlar kaydedilemedi — {ex.Message}");
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] ERROR: Failed to save configuration — {ex.Message}");
         }
     }
 
@@ -642,27 +642,27 @@ public sealed class MainForm : Form
 
         if (snapshot.IsPaused)
         {
-            _statusBadge.Text = "●  İzleme Duraklatıldı";
+            _statusBadge.Text = "●  Watcher Paused";
             _statusBadge.ForeColor = TextMuted;
             _trayIcon.Icon = _pausedIcon;
             Icon = _pausedIcon;
-            _trayIcon.Text = "ETS 2 Başlatıcı — Duraklatıldı";
+            _trayIcon.Text = "ETS 2 Companion Launcher — Paused";
         }
         else if (snapshot.IsGameRunning)
         {
-            _statusBadge.Text = $"●  ETS 2 Çalışıyor";
+            _statusBadge.Text = "●  Game Running";
             _statusBadge.ForeColor = SuccessGreen;
             _trayIcon.Icon = _runningIcon;
             Icon = _runningIcon;
-            _trayIcon.Text = $"ETS 2 Başlatıcı — {snapshot.DetectedGameProcess} çalışıyor";
+            _trayIcon.Text = $"ETS 2 Companion Launcher — {snapshot.DetectedGameProcess} running";
         }
         else
         {
-            _statusBadge.Text = "●  ETS 2 Bekleniyor";
+            _statusBadge.Text = "●  Waiting for ETS 2";
             _statusBadge.ForeColor = AccentBlue;
             _trayIcon.Icon = _watchingIcon;
             Icon = _watchingIcon;
-            _trayIcon.Text = "ETS 2 Başlatıcı — ETS 2 bekleniyor";
+            _trayIcon.Text = "ETS 2 Companion Launcher — Waiting for ETS 2";
         }
 
         UpdateGridRunningStates(snapshot);
@@ -680,16 +680,16 @@ public sealed class MainForm : Form
             var hasValidPath = app.HasValidTarget();
             var pathDisplay = hasValidPath
                 ? app.ExecutablePath
-                : "Yol ayarlanmadı — 'Otomatik Bul' veya 'Düzenle' tıklayın";
+                : "Not configured — click 'Auto-Detect' or 'Edit'";
 
             var isRunning = _latestSnapshot?.AppRunningStates.TryGetValue(app.Id, out var running) == true && running;
-            var statusText = isRunning ? "Çalışıyor" : "Kapalı";
+            var statusText = isRunning ? "Running" : "Stopped";
 
             var rowIndex = _appsGrid.Rows.Add(
                 app.Enabled,
                 app.Name,
                 pathDisplay,
-                $"{app.LaunchDelaySeconds} sn",
+                $"{app.LaunchDelaySeconds}s",
                 app.CloseOnGameExit,
                 statusText);
 
@@ -719,7 +719,7 @@ public sealed class MainForm : Form
             }
 
             var isRunning = snapshot.AppRunningStates.TryGetValue(app.Id, out var running) && running;
-            row.Cells[5].Value = isRunning ? "Çalışıyor" : "Kapalı";
+            row.Cells[5].Value = isRunning ? "Running" : "Stopped";
             row.Cells[5].Style.ForeColor = isRunning ? SuccessGreen : TextMuted;
         }
         _suppressUiEvents = false;
@@ -743,13 +743,13 @@ public sealed class MainForm : Form
         {
             app.Enabled = Convert.ToBoolean(_appsGrid.Rows[e.RowIndex].Cells[0].Value);
             SaveConfig();
-            AppendLog($"[{DateTime.Now:HH:mm:ss}] '{app.Name}' {(app.Enabled ? "etkinleştirildi" : "devre dışı bırakıldı")}.");
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] '{app.Name}' {(app.Enabled ? "enabled" : "disabled")}.");
         }
         else if (e.ColumnIndex == 4)
         {
             app.CloseOnGameExit = Convert.ToBoolean(_appsGrid.Rows[e.RowIndex].Cells[4].Value);
             SaveConfig();
-            AppendLog($"[{DateTime.Now:HH:mm:ss}] '{app.Name}' için oyun çıkışında kapatma: {(app.CloseOnGameExit ? "Açık" : "Kapalı")}.");
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] Close on game exit for '{app.Name}': {(app.CloseOnGameExit ? "On" : "Off")}.");
         }
     }
 
@@ -838,14 +838,14 @@ public sealed class MainForm : Form
 
         var colEnabled = new DataGridViewCheckBoxColumn
         {
-            HeaderText = "Aktif",
+            HeaderText = "Enabled",
             FillWeight = 9,
-            MinimumWidth = 52
+            MinimumWidth = 60
         };
 
         var colName = new DataGridViewTextBoxColumn
         {
-            HeaderText = "Uygulama",
+            HeaderText = "Application",
             ReadOnly = true,
             FillWeight = 20,
             MinimumWidth = 120
@@ -853,33 +853,33 @@ public sealed class MainForm : Form
 
         var colPath = new DataGridViewTextBoxColumn
         {
-            HeaderText = "Dosya Yolu / Hedef",
+            HeaderText = "Executable Path / Target",
             ReadOnly = true,
-            FillWeight = 42,
+            FillWeight = 41,
             MinimumWidth = 220
         };
 
         var colDelay = new DataGridViewTextBoxColumn
         {
-            HeaderText = "Gecikme",
+            HeaderText = "Delay",
             ReadOnly = true,
-            FillWeight = 10,
-            MinimumWidth = 68
+            FillWeight = 9,
+            MinimumWidth = 60
         };
 
         var colClose = new DataGridViewCheckBoxColumn
         {
-            HeaderText = "Çıkışta Kapat",
+            HeaderText = "Close on Exit",
             FillWeight = 12,
-            MinimumWidth = 86
+            MinimumWidth = 92
         };
 
         var colStatus = new DataGridViewTextBoxColumn
         {
-            HeaderText = "Durum",
+            HeaderText = "Status",
             ReadOnly = true,
-            FillWeight = 12,
-            MinimumWidth = 78
+            FillWeight = 11,
+            MinimumWidth = 74
         };
 
         grid.Columns.AddRange(colEnabled, colName, colPath, colDelay, colClose, colStatus);

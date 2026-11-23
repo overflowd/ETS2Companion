@@ -112,7 +112,7 @@ public static class AppAutoDetector
                     var path = proc.MainModule?.FileName;
                     if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
                     {
-                        return new DetectionResult(path, "Çalışan işlem");
+                        return new DetectionResult(path, "Running process");
                     }
                 }
                 catch
@@ -234,7 +234,7 @@ public static class AppAutoDetector
                 var exe = TryFindExeFromAcfManifest(steamAppsDir, manifestPath, hints);
                 if (exe is not null)
                 {
-                    return new DetectionResult(exe, "Steam kütüphanesi");
+                    return new DetectionResult(exe, "Steam library");
                 }
             }
 
@@ -252,7 +252,7 @@ public static class AppAutoDetector
                         var exe = FindBestExecutableInDirectory(folder, hints, maxDepth: 2);
                         if (exe is not null)
                         {
-                            return new DetectionResult(exe, "Steam kütüphanesi");
+                            return new DetectionResult(exe, "Steam library");
                         }
                     }
                 }
@@ -276,7 +276,7 @@ public static class AppAutoDetector
                             var exe = FindBestExecutableInDirectory(dir, hints, maxDepth: 2);
                             if (exe is not null)
                             {
-                                return new DetectionResult(exe, "Steam kütüphanesi");
+                                return new DetectionResult(exe, "Steam library");
                             }
                         }
                     }
@@ -362,7 +362,7 @@ public static class AppAutoDetector
                             File.Exists(displayIcon) &&
                             !IsExcludedExecutable(displayIcon))
                         {
-                            return new DetectionResult(displayIcon, "Windows kayıt defteri");
+                            return new DetectionResult(displayIcon, "Windows Registry");
                         }
 
                         var installLocation = (appKey?.GetValue("InstallLocation") as string)?.Trim().Trim('"');
@@ -371,7 +371,7 @@ public static class AppAutoDetector
                             var exe = FindBestExecutableInDirectory(installLocation, hints, maxDepth: 2);
                             if (exe is not null)
                             {
-                                return new DetectionResult(exe, "Windows kayıt defteri");
+                                return new DetectionResult(exe, "Windows Registry");
                             }
                         }
                     }
@@ -423,7 +423,7 @@ public static class AppAutoDetector
                         File.Exists(target) &&
                         !IsExcludedExecutable(target))
                     {
-                        return new DetectionResult(target, "Başlat Menüsü / Masaüstü kısayolu");
+                        return new DetectionResult(target, "Start Menu / Desktop shortcut");
                     }
                 }
                 else if (ext.Equals(".url", StringComparison.OrdinalIgnoreCase) && steamUrlFallback is null)
@@ -438,7 +438,7 @@ public static class AppAutoDetector
         }
 
         return steamUrlFallback is not null
-            ? new DetectionResult(steamUrlFallback, "Steam kısayolu")
+            ? new DetectionResult(steamUrlFallback, "Steam shortcut")
             : null;
     }
 
@@ -469,7 +469,7 @@ public static class AppAutoDetector
                     var exe = FindBestExecutableInDirectory(subDir, hints, maxDepth: 2);
                     if (exe is not null)
                     {
-                        return new DetectionResult(exe, "Program klasörü");
+                        return new DetectionResult(exe, "Program folder");
                     }
                 }
             }

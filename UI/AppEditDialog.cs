@@ -29,7 +29,7 @@ public sealed class AppEditDialog : Form
     {
         ResultApp = app.Clone();
 
-        Text = isNew ? "Yeni Uygulama Ekle" : $"Düzenle — {app.Name}";
+        Text = isNew ? "Add Companion App" : $"Edit — {app.Name}";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -41,37 +41,37 @@ public sealed class AppEditDialog : Form
 
         var y = 18;
 
-        Controls.Add(CreateLabel("Uygulama Adı:", 20, y));
+        Controls.Add(CreateLabel("Application Name:", 20, y));
         _nameBox = CreateTextBox(20, y + 22, 520, ResultApp.Name);
         Controls.Add(_nameBox);
         y += 62;
 
-        Controls.Add(CreateLabel("Dosya Yolu (.exe / .lnk) veya Steam URL (steam://rungameid/...):", 20, y));
+        Controls.Add(CreateLabel("Executable Path (.exe / .lnk) or Steam URL (steam://rungameid/...):", 20, y));
         _pathBox = CreateTextBox(20, y + 22, 345, ResultApp.ExecutablePath);
         Controls.Add(_pathBox);
 
-        var browseBtn = CreateButton("Gözat...", 373, y + 20, 80, SurfaceDark, TextPrimary);
+        var browseBtn = CreateButton("Browse...", 373, y + 20, 80, SurfaceDark, TextPrimary);
         browseBtn.Click += BrowseBtn_Click;
         Controls.Add(browseBtn);
 
-        var detectBtn = CreateButton("Bul", 460, y + 20, 80, SurfaceDark, AccentBlue);
+        var detectBtn = CreateButton("Detect", 460, y + 20, 80, SurfaceDark, AccentBlue);
         detectBtn.Click += DetectBtn_Click;
         Controls.Add(detectBtn);
         y += 62;
 
-        Controls.Add(CreateLabel("Başlatma Parametreleri (İsteğe bağlı):", 20, y));
+        Controls.Add(CreateLabel("Launch Arguments (optional):", 20, y));
         _argsBox = CreateTextBox(20, y + 22, 250, ResultApp.Arguments);
         Controls.Add(_argsBox);
 
-        Controls.Add(CreateLabel("İşlem Adı (Çalışma kontrolü için):", 290, y));
+        Controls.Add(CreateLabel("Process Name (for running check):", 290, y));
         _processBox = CreateTextBox(290, y + 22, 250, ResultApp.ProcessName);
         Controls.Add(_processBox);
         y += 62;
 
-        Controls.Add(CreateLabel("Başlatma Gecikmesi (saniye):", 20, y + 3));
+        Controls.Add(CreateLabel("Launch Delay (seconds):", 20, y + 3));
         _delayNumeric = new NumericUpDown
         {
-            Location = new Point(210, y),
+            Location = new Point(185, y),
             Size = new Size(80, 28),
             Minimum = 0,
             Maximum = 60,
@@ -85,7 +85,7 @@ public sealed class AppEditDialog : Form
 
         _enabledCheck = new CheckBox
         {
-            Text = "ETS 2 açıldığında bu uygulamayı otomatik başlat",
+            Text = "Launch automatically when ETS 2 starts",
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.Enabled,
@@ -96,7 +96,7 @@ public sealed class AppEditDialog : Form
 
         _closeOnExitCheck = new CheckBox
         {
-            Text = "ETS 2 kapandığında bu uygulamayı otomatik kapat",
+            Text = "Close automatically when ETS 2 exits",
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.CloseOnGameExit,
@@ -107,7 +107,7 @@ public sealed class AppEditDialog : Form
 
         _runAsAdminCheck = new CheckBox
         {
-            Text = "Yönetici olarak çalıştır (UAC onayı isteyebilir)",
+            Text = "Run as administrator (may trigger UAC prompt)",
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.RunAsAdmin,
@@ -118,7 +118,7 @@ public sealed class AppEditDialog : Form
 
         _hintLabel = new Label
         {
-            Text = "İpucu: Uygulama şu an açıksa 'Bul' butonu dosya yolunu anında tespit eder.",
+            Text = "Tip: If the app is currently open, clicking 'Detect' finds its exact path immediately.",
             Location = new Point(20, y),
             Size = new Size(520, 22),
             ForeColor = TextMuted,
@@ -126,11 +126,11 @@ public sealed class AppEditDialog : Form
         };
         Controls.Add(_hintLabel);
 
-        var cancelBtn = CreateButton("İptal", 360, 368, 86, SurfaceDark, TextPrimary);
+        var cancelBtn = CreateButton("Cancel", 360, 368, 86, SurfaceDark, TextPrimary);
         cancelBtn.DialogResult = DialogResult.Cancel;
         Controls.Add(cancelBtn);
 
-        var saveBtn = CreateButton("Kaydet", 454, 368, 86, AccentBlue, Color.FromArgb(15, 23, 42));
+        var saveBtn = CreateButton("Save", 454, 368, 86, AccentBlue, Color.FromArgb(15, 23, 42));
         saveBtn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         saveBtn.Click += SaveBtn_Click;
         Controls.Add(saveBtn);
@@ -143,8 +143,8 @@ public sealed class AppEditDialog : Form
     {
         using var dialog = new OpenFileDialog
         {
-            Title = "Uygulama dosyasını seçin",
-            Filter = "Uygulamalar (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|Tüm Dosyalar (*.*)|*.*",
+            Title = "Select application executable",
+            Filter = "Applications (*.exe;*.lnk;*.bat;*.cmd)|*.exe;*.lnk;*.bat;*.cmd|All Files (*.*)|*.*",
             CheckFileExists = true
         };
 
@@ -188,12 +188,12 @@ public sealed class AppEditDialog : Form
                 }
 
                 _hintLabel.ForeColor = Color.FromArgb(34, 197, 94);
-                _hintLabel.Text = $"Bulundu ({detected.Source}): {detected.Path}";
+                _hintLabel.Text = $"Found ({detected.Source}): {detected.Path}";
             }
             else
             {
                 _hintLabel.ForeColor = Color.FromArgb(245, 158, 11);
-                _hintLabel.Text = "Otomatik bulunamadı. Lütfen 'Gözat...' ile .exe dosyasını seçin.";
+                _hintLabel.Text = "Not found automatically. Click 'Browse...' to select the .exe file manually.";
             }
         }
         finally
@@ -207,7 +207,7 @@ public sealed class AppEditDialog : Form
         var name = _nameBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(name))
         {
-            MessageBox.Show(this, "Lütfen bir uygulama adı girin.", "Eksik Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, "Please enter an application name.", "Missing Information", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             _nameBox.Focus();
             return;
         }

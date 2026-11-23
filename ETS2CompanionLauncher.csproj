@@ -10,8 +10,8 @@
     <RootNamespace>ETS2CompanionLauncher</RootNamespace>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <Version>1.0.0</Version>
-    <Product>ETS 2 Otomatik Uygulama Başlatıcı</Product>
-    <Description>ETS 2 açıldığında Lossless Scaling, LookPilot ve WestPlay uygulamalarını otomatik başlatır.</Description>
+    <Product>ETS 2 Companion Launcher</Product>
+    <Description>Automatically launches companion apps (Lossless Scaling, LookPilot, WestPlay, and custom tools) when Euro Truck Simulator 2 starts.</Description>
   </PropertyGroup>
 
 </Project>

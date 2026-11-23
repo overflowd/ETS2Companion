@@ -65,11 +65,11 @@ public sealed class GameWatcherService : IDisposable
 
             if (_wasGameRunning)
             {
-                Log($"ETS 2 ({initialGame}) zaten çalışıyor olarak algılandı.");
+                Log($"ETS 2 ({initialGame}) is already running.");
             }
             else
             {
-                Log($"İzleme başlatıldı. Beklenen işlem: {_config.WatchedProcesses}");
+                Log($"Watcher started. Monitoring process(es): {_config.WatchedProcesses}");
             }
 
             _loopCts = new CancellationTokenSource();
@@ -94,7 +94,7 @@ public sealed class GameWatcherService : IDisposable
 
         if (changed)
         {
-            Log(paused ? "Otomatik izleme duraklatıldı." : "Otomatik izleme devam ediyor.");
+            Log(paused ? "Automatic watching paused." : "Automatic watching resumed.");
             PublishSnapshot();
         }
     }
@@ -110,7 +110,7 @@ public sealed class GameWatcherService : IDisposable
         var enabledApps = config.Apps.Where(a => a.Enabled).Select(a => a.Clone()).ToList();
         if (enabledApps.Count == 0)
         {
-            Log($"{reason}: Etkinleştirilmiş uygulama yok.");
+            Log($"{reason}: No enabled companion apps.");
             return;
         }
 
@@ -119,7 +119,7 @@ public sealed class GameWatcherService : IDisposable
 
         foreach (var missing in missingApps)
         {
-            Log($"UYARI: '{missing.Name}' için geçerli uygulama yolu ayarlanmamış — atlandı.");
+            Log($"WARNING: '{missing.Name}' does not have a valid executable path configured — skipped.");
         }
 
         if (validApps.Count == 0)
@@ -127,17 +127,17 @@ public sealed class GameWatcherService : IDisposable
             if (config.ShowNotifications)
             {
                 NotificationRequested?.Invoke(
-                    "ETS 2 Algılandı",
-                    "Başlatılacak uygulamaların dosya yolları ayarlanmamış. Lütfen pencereden 'Otomatik Bul' veya 'Düzenle' kullanın.");
+                    "ETS 2 Detected",
+                    "No valid companion app paths are configured. Open the window and click 'Auto-Detect' or 'Edit'.");
             }
             return;
         }
 
-        Log($"{reason}: {validApps.Count} uygulama başlatılıyor...");
+        Log($"{reason}: Launching {validApps.Count} app(s)...");
         if (config.ShowNotifications)
         {
             var names = string.Join(", ", validApps.Select(a => a.Name));
-            NotificationRequested?.Invoke("ETS 2 Başlatıcı", $"{reason}: {names}");
+            NotificationRequested?.Invoke("ETS 2 Companion Launcher", $"{reason}: {names}");
         }
 
         var tasks = validApps.Select(app => LaunchSingleAppWithDelayAsync(app, cancellationToken)).ToList();
@@ -222,11 +222,11 @@ public sealed class GameWatcherService : IDisposable
 
                 if (becameRunning)
                 {
-                    _ = Task.Run(() => LaunchEnabledAppsAsync($"ETS 2 ({runningGame}) açıldı", launchToken), ct);
+                    _ = Task.Run(() => LaunchEnabledAppsAsync($"Game started ({runningGame})", launchToken), ct);
                 }
                 else if (becameStopped)
                 {
-                    Log("ETS 2 kapandı.");
+                    Log("Game exited.");
                     _ = Task.Run(() => CloseConfiguredAppsOnExitAsync(config), ct);
                 }
 
@@ -238,7 +238,7 @@ public sealed class GameWatcherService : IDisposable
             }
             catch (Exception ex)
             {
-                Log($"İzleme hatası: {ex.Message}");
+                Log($"Watcher error: {ex.Message}");
             }
 
             try
@@ -258,7 +258,7 @@ public sealed class GameWatcherService : IDisposable
         {
             if (app.LaunchDelaySeconds > 0)
             {
-                Log($"'{app.Name}' {app.LaunchDelaySeconds} saniye sonra başlatılacak...");
+                Log($"'{app.Name}' will launch in {app.LaunchDelaySeconds}s...");
                 await Task.Delay(TimeSpan.FromSeconds(app.LaunchDelaySeconds), ct).ConfigureAwait(false);
             }
 
@@ -269,7 +269,7 @@ public sealed class GameWatcherService : IDisposable
 
             if (IsAppRunning(app))
             {
-                Log($"'{app.Name}' zaten çalışıyor — yeniden açılmadı.");
+                Log($"'{app.Name}' is already running — skipped.");
                 return;
             }
 
@@ -295,15 +295,15 @@ public sealed class GameWatcherService : IDisposable
             }
 
             Process.Start(startInfo);
-            Log($"'{app.Name}' başlatıldı.");
+            Log($"Launched '{app.Name}'.");
         }
         catch (OperationCanceledException)
         {
-            Log($"'{app.Name}' başlatılması iptal edildi (ETS 2 kapandı veya izleme duraklatıldı).");
+            Log($"Cancelled launch of '{app.Name}' (game exited or watcher paused).");
         }
         catch (Exception ex)
         {
-            Log($"HATA: '{app.Name}' başlatılamadı — {ex.Message}");
+            Log($"ERROR: Failed to launch '{app.Name}' — {ex.Message}");
         }
     }
 
@@ -335,7 +335,7 @@ public sealed class GameWatcherService : IDisposable
 
             try
             {
-                Log($"ETS 2 kapandığı için '{app.Name}' kapatılıyor...");
+                Log($"Closing '{app.Name}' on game exit...");
                 foreach (var proc in processes)
                 {
                     try
