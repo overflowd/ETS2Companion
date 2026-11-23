@@ -33,10 +33,7 @@ public sealed class ConfigService
                 if (config is not null)
                 {
                     config.Apps ??= new List<CompanionApp>();
-                    if (string.IsNullOrWhiteSpace(config.WatchedProcesses))
-                    {
-                        config.WatchedProcesses = "eurotrucks2";
-                    }
+                    config.MigrateLegacyFieldsIfNeeded();
 
                     if (config.PollIntervalMs < 500 || config.PollIntervalMs > 30000)
                     {

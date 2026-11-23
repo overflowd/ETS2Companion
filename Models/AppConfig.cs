@@ -1,11 +1,29 @@
+using System.Text.Json.Serialization;
+
 namespace ETS2CompanionLauncher.Models;
 
 public sealed class AppConfig
 {
     /// <summary>
-    /// Comma-separated process names (without .exe) to watch. Default: eurotrucks2
+    /// Watch Euro Truck Simulator 2 (eurotrucks2.exe).
     /// </summary>
-    public string WatchedProcesses { get; set; } = "eurotrucks2";
+    public bool WatchEts2 { get; set; } = true;
+
+    /// <summary>
+    /// Watch American Truck Simulator (amtrucks.exe).
+    /// </summary>
+    public bool WatchAts { get; set; } = false;
+
+    /// <summary>
+    /// Optional comma-separated additional process names (without .exe) to watch.
+    /// </summary>
+    public string CustomWatchedProcesses { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Legacy property kept for backward compatibility with older config files.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WatchedProcesses { get; set; }
 
     /// <summary>
     /// Polling interval in milliseconds.
@@ -13,7 +31,7 @@ public sealed class AppConfig
     public int PollIntervalMs { get; set; } = 2000;
 
     /// <summary>
-    /// Show system tray notifications when ETS 2 starts and apps launch.
+    /// Show system tray notifications when the game starts and companion apps launch.
     /// </summary>
     public bool ShowNotifications { get; set; } = true;
 
@@ -22,73 +40,89 @@ public sealed class AppConfig
     /// </summary>
     public bool MinimizeToTrayOnClose { get; set; } = true;
 
-    /// <summary>
-    /// Tracks whether initial auto-detection has already run at least once.
-    /// </summary>
-    public bool InitialAutoDetectCompleted { get; set; } = false;
-
     public List<CompanionApp> Apps { get; set; } = new();
 
     public static AppConfig CreateDefault()
     {
         return new AppConfig
         {
-            WatchedProcesses = "eurotrucks2",
+            WatchEts2 = true,
+            WatchAts = false,
+            CustomWatchedProcesses = string.Empty,
             PollIntervalMs = 2000,
             ShowNotifications = true,
             MinimizeToTrayOnClose = true,
-            InitialAutoDetectCompleted = false,
-            Apps = new List<CompanionApp>
-            {
-                new CompanionApp
-                {
-                    Id = "lossless-scaling",
-                    Name = "Lossless Scaling",
-                    Enabled = true,
-                    ExecutablePath = string.Empty,
-                    Arguments = string.Empty,
-                    ProcessName = "LosslessScaling",
-                    LaunchDelaySeconds = 3,
-                    CloseOnGameExit = false,
-                    RunAsAdmin = false,
-                    SearchHints = new List<string> { "LosslessScaling", "Lossless Scaling" },
-                    SteamAppId = "993090"
-                },
-                new CompanionApp
-                {
-                    Id = "lookpilot",
-                    Name = "LookPilot",
-                    Enabled = true,
-                    ExecutablePath = string.Empty,
-                    Arguments = string.Empty,
-                    ProcessName = "LookPilot",
-                    LaunchDelaySeconds = 1,
-                    CloseOnGameExit = false,
-                    RunAsAdmin = false,
-                    SearchHints = new List<string> { "LookPilot", "lookpilot" },
-                    SteamAppId = string.Empty
-                },
-                new CompanionApp
-                {
-                    Id = "westplay",
-                    Name = "WestPlay",
-                    Enabled = true,
-                    ExecutablePath = string.Empty,
-                    Arguments = string.Empty,
-                    ProcessName = "WestPlay",
-                    LaunchDelaySeconds = 1,
-                    CloseOnGameExit = false,
-                    RunAsAdmin = false,
-                    SearchHints = new List<string> { "WestPlay", "Westplay", "westplay" },
-                    SteamAppId = string.Empty
-                }
-            }
+            Apps = new List<CompanionApp>()
         };
+    }
+
+    public void MigrateLegacyFieldsIfNeeded()
+    {
+        if (string.IsNullOrWhiteSpace(WatchedProcesses))
+        {
+            return;
+        }
+
+        var tokens = SplitProcessNames(WatchedProcesses);
+        WatchEts2 = tokens.Any(t => t.Equals("eurotrucks2", StringComparison.OrdinalIgnoreCase));
+        WatchAts = tokens.Any(t => t.Equals("amtrucks", StringComparison.OrdinalIgnoreCase));
+
+        var extras = tokens
+            .Where(t => !t.Equals("eurotrucks2", StringComparison.OrdinalIgnoreCase) &&
+                        !t.Equals("amtrucks", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (extras.Length > 0 && string.IsNullOrWhiteSpace(CustomWatchedProcesses))
+        {
+            CustomWatchedProcesses = string.Join(", ", extras);
+        }
+
+        WatchedProcesses = null;
     }
 
     public string[] GetWatchedProcessList()
     {
-        return WatchedProcesses
+        var list = new List<string>();
+        if (WatchEts2)
+        {
+            list.Add("eurotrucks2");
+        }
+
+        if (WatchAts)
+        {
+            list.Add("amtrucks");
+        }
+
+        list.AddRange(SplitProcessNames(CustomWatchedProcesses));
+
+        return list
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public string GetWatchedSummaryLabel()
+    {
+        var parts = new List<string>();
+        if (WatchEts2) parts.Add("ETS 2");
+        if (WatchAts) parts.Add("ATS");
+
+        var extras = SplitProcessNames(CustomWatchedProcesses);
+        if (extras.Length > 0)
+        {
+            parts.AddRange(extras);
+        }
+
+        return parts.Count > 0 ? string.Join(" / ", parts) : "No Game Selected";
+    }
+
+    private static string[] SplitProcessNames(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return Array.Empty<string>();
+        }
+
+        return input
             .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(p => p.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? p[..^4] : p)
             .Where(p => !string.IsNullOrWhiteSpace(p))

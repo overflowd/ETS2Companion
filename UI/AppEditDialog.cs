@@ -34,39 +34,49 @@ public sealed class AppEditDialog : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
-        ClientSize = new Size(560, 420);
+        ClientSize = new Size(600, 442);
         BackColor = BgDark;
         ForeColor = TextPrimary;
         Font = new Font("Segoe UI", 9.5f);
 
         var y = 18;
 
+        // Quick-pick bar at top
+        var pickRunningBtn = CreateButton("Pick from Running Apps...", 20, y, 185, SurfaceDark, AccentBlue);
+        pickRunningBtn.Click += (_, _) => OpenPicker(AppPickerMode.Running);
+        Controls.Add(pickRunningBtn);
+
+        var pickInstalledBtn = CreateButton("Pick from Installed / Start Menu...", 213, y, 225, SurfaceDark, AccentBlue);
+        pickInstalledBtn.Click += (_, _) => OpenPicker(AppPickerMode.Installed);
+        Controls.Add(pickInstalledBtn);
+
+        var browseTopBtn = CreateButton("Browse .exe...", 446, y, 134, SurfaceDark, TextPrimary);
+        browseTopBtn.Click += BrowseBtn_Click;
+        Controls.Add(browseTopBtn);
+        y += 46;
+
         Controls.Add(CreateLabel("Application Name:", 20, y));
-        _nameBox = CreateTextBox(20, y + 22, 520, ResultApp.Name);
+        _nameBox = CreateTextBox(20, y + 22, 560, ResultApp.Name);
         Controls.Add(_nameBox);
-        y += 62;
+        y += 60;
 
         Controls.Add(CreateLabel("Executable Path (.exe / .lnk) or Steam URL (steam://rungameid/...):", 20, y));
-        _pathBox = CreateTextBox(20, y + 22, 345, ResultApp.ExecutablePath);
+        _pathBox = CreateTextBox(20, y + 22, 470, ResultApp.ExecutablePath);
         Controls.Add(_pathBox);
 
-        var browseBtn = CreateButton("Browse...", 373, y + 20, 80, SurfaceDark, TextPrimary);
-        browseBtn.Click += BrowseBtn_Click;
-        Controls.Add(browseBtn);
-
-        var detectBtn = CreateButton("Detect", 460, y + 20, 80, SurfaceDark, AccentBlue);
+        var detectBtn = CreateButton("Detect", 498, y + 20, 82, SurfaceDark, AccentBlue);
         detectBtn.Click += DetectBtn_Click;
         Controls.Add(detectBtn);
-        y += 62;
+        y += 60;
 
         Controls.Add(CreateLabel("Launch Arguments (optional):", 20, y));
-        _argsBox = CreateTextBox(20, y + 22, 250, ResultApp.Arguments);
+        _argsBox = CreateTextBox(20, y + 22, 270, ResultApp.Arguments);
         Controls.Add(_argsBox);
 
-        Controls.Add(CreateLabel("Process Name (for running check):", 290, y));
-        _processBox = CreateTextBox(290, y + 22, 250, ResultApp.ProcessName);
+        Controls.Add(CreateLabel("Process Name (for running check):", 310, y));
+        _processBox = CreateTextBox(310, y + 22, 270, ResultApp.ProcessName);
         Controls.Add(_processBox);
-        y += 62;
+        y += 60;
 
         Controls.Add(CreateLabel("Launch Delay (seconds):", 20, y + 3));
         _delayNumeric = new NumericUpDown
@@ -81,29 +91,29 @@ public sealed class AppEditDialog : Form
             BorderStyle = BorderStyle.FixedSingle
         };
         Controls.Add(_delayNumeric);
-        y += 40;
+        y += 38;
 
         _enabledCheck = new CheckBox
         {
-            Text = "Launch automatically when ETS 2 starts",
+            Text = "Launch automatically when game starts",
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.Enabled,
             ForeColor = TextPrimary
         };
         Controls.Add(_enabledCheck);
-        y += 28;
+        y += 26;
 
         _closeOnExitCheck = new CheckBox
         {
-            Text = "Close automatically when ETS 2 exits",
+            Text = "Close automatically when game exits",
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.CloseOnGameExit,
             ForeColor = TextPrimary
         };
         Controls.Add(_closeOnExitCheck);
-        y += 28;
+        y += 26;
 
         _runAsAdminCheck = new CheckBox
         {
@@ -114,29 +124,43 @@ public sealed class AppEditDialog : Form
             ForeColor = TextMuted
         };
         Controls.Add(_runAsAdminCheck);
-        y += 32;
+        y += 30;
 
         _hintLabel = new Label
         {
-            Text = "Tip: If the app is currently open, clicking 'Detect' finds its exact path immediately.",
+            Text = "Tip: Pick any open/installed app above, browse for an .exe, or paste a steam://rungameid/ URL.",
             Location = new Point(20, y),
-            Size = new Size(520, 22),
+            Size = new Size(560, 22),
             ForeColor = TextMuted,
             Font = new Font("Segoe UI", 8.5f)
         };
         Controls.Add(_hintLabel);
 
-        var cancelBtn = CreateButton("Cancel", 360, 368, 86, SurfaceDark, TextPrimary);
+        var cancelBtn = CreateButton("Cancel", 400, 392, 86, SurfaceDark, TextPrimary);
         cancelBtn.DialogResult = DialogResult.Cancel;
         Controls.Add(cancelBtn);
 
-        var saveBtn = CreateButton("Save", 454, 368, 86, AccentBlue, Color.FromArgb(15, 23, 42));
+        var saveBtn = CreateButton("Save", 494, 392, 86, AccentBlue, Color.FromArgb(15, 23, 42));
         saveBtn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         saveBtn.Click += SaveBtn_Click;
         Controls.Add(saveBtn);
 
         AcceptButton = saveBtn;
         CancelButton = cancelBtn;
+    }
+
+    private void OpenPicker(AppPickerMode mode)
+    {
+        using var picker = new AppPickerDialog(mode);
+        if (picker.ShowDialog(this) == DialogResult.OK && picker.SelectedApp is not null)
+        {
+            var picked = picker.SelectedApp;
+            _nameBox.Text = picked.Name;
+            _pathBox.Text = picked.ExecutablePath;
+            _processBox.Text = picked.ProcessName;
+            _hintLabel.ForeColor = Color.FromArgb(34, 197, 94);
+            _hintLabel.Text = $"Selected ({picked.Source}): {picked.ExecutablePath}";
+        }
     }
 
     private void BrowseBtn_Click(object? sender, EventArgs e)
@@ -193,7 +217,7 @@ public sealed class AppEditDialog : Form
             else
             {
                 _hintLabel.ForeColor = Color.FromArgb(245, 158, 11);
-                _hintLabel.Text = "Not found automatically. Click 'Browse...' to select the .exe file manually.";
+                _hintLabel.Text = "Not found automatically. Use 'Pick from...' or 'Browse .exe...' above.";
             }
         }
         finally

@@ -65,11 +65,14 @@ public sealed class GameWatcherService : IDisposable
 
             if (_wasGameRunning)
             {
-                Log($"ETS 2 ({initialGame}) is already running.");
+                Log($"Game ({initialGame}) is already running.");
             }
             else
             {
-                Log($"Watcher started. Monitoring process(es): {_config.WatchedProcesses}");
+                var watched = string.Join(", ", _config.GetWatchedProcessList());
+                Log(string.IsNullOrWhiteSpace(watched)
+                    ? "Watcher started. Select at least one game to monitor."
+                    : $"Watcher started. Monitoring process(es): {watched}");
             }
 
             _loopCts = new CancellationTokenSource();
@@ -127,8 +130,8 @@ public sealed class GameWatcherService : IDisposable
             if (config.ShowNotifications)
             {
                 NotificationRequested?.Invoke(
-                    "ETS 2 Detected",
-                    "No valid companion app paths are configured. Open the window and click 'Auto-Detect' or 'Edit'.");
+                    "Game Detected",
+                    "No valid companion app paths are configured. Open the window to add or edit apps.");
             }
             return;
         }

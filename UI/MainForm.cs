@@ -30,13 +30,20 @@ public sealed class MainForm : Form
     private readonly ToolStripMenuItem _trayPauseItem;
     private readonly Label _statusBadge;
     private readonly DataGridView _appsGrid;
+    private readonly Label _emptyStateLabel;
     private readonly TextBox _logBox;
     private readonly CheckBox _startupCheck;
     private readonly CheckBox _notifyCheck;
     private readonly CheckBox _pauseCheck;
-    private readonly TextBox _watchedProcessBox;
+    private readonly CheckBox _ets2Check;
+    private readonly CheckBox _atsCheck;
+    private readonly TextBox _customProcessBox;
+    private readonly Button _addAppBtn;
+    private readonly Button _presetsBtn;
     private readonly Button _autoDetectBtn;
     private readonly Button _launchNowBtn;
+    private readonly ContextMenuStrip _addMenu;
+    private readonly ContextMenuStrip _presetsMenu;
 
     private WatcherSnapshot? _latestSnapshot;
     private bool _allowExit;
@@ -55,8 +62,8 @@ public sealed class MainForm : Form
 
         Text = "ETS 2 Companion Launcher";
         Icon = _watchingIcon;
-        MinimumSize = new Size(860, 610);
-        Size = new Size(920, 650);
+        MinimumSize = new Size(900, 620);
+        Size = new Size(950, 660);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = BgDark;
         ForeColor = TextPrimary;
@@ -67,7 +74,6 @@ public sealed class MainForm : Form
         var openItem = new ToolStripMenuItem("Open Window", null, (_, _) => RestoreFromTray());
         openItem.Font = new Font(openItem.Font, FontStyle.Bold);
         var launchNowTrayItem = new ToolStripMenuItem("Launch Apps Now", null, async (_, _) => await RunManualLaunchAsync());
-        var detectTrayItem = new ToolStripMenuItem("Auto-Detect Apps", null, async (_, _) => await RunAutoDetectAsync(forceRescan: false));
         _trayPauseItem = new ToolStripMenuItem("Pause Watching", null, (_, _) => TogglePause());
         var exitItem = new ToolStripMenuItem("Exit", null, (_, _) => ExitApplication());
 
@@ -75,7 +81,6 @@ public sealed class MainForm : Form
         {
             openItem,
             launchNowTrayItem,
-            detectTrayItem,
             new ToolStripSeparator(),
             _trayPauseItem,
             new ToolStripSeparator(),
@@ -85,11 +90,26 @@ public sealed class MainForm : Form
         _trayIcon = new NotifyIcon
         {
             Icon = _watchingIcon,
-            Text = "ETS 2 Companion Launcher — Waiting for ETS 2",
+            Text = "ETS 2 Companion Launcher — Waiting for game",
             ContextMenuStrip = trayMenu,
             Visible = true
         };
         _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+
+        // --- Add App Dropdown Menu ---
+        _addMenu = new ContextMenuStrip();
+        _addMenu.Items.Add("Pick from Running Apps...", null, (_, _) => AddFromPicker(AppPickerMode.Running));
+        _addMenu.Items.Add("Pick from Installed / Start Menu...", null, (_, _) => AddFromPicker(AppPickerMode.Installed));
+        _addMenu.Items.Add(new ToolStripSeparator());
+        _addMenu.Items.Add("Browse .exe / Custom Entry...", null, (_, _) => AddNewApp());
+
+        // --- Popular Presets Dropdown Menu ---
+        _presetsMenu = new ContextMenuStrip();
+        foreach (var preset in AppPresets.GetPopularPresets())
+        {
+            var captured = preset;
+            _presetsMenu.Items.Add(captured.Name, null, async (_, _) => await AddFromPresetAsync(captured));
+        }
 
         // --- Layout ---
         var rootLayout = new TableLayoutPanel
@@ -110,7 +130,7 @@ public sealed class MainForm : Form
         // 1. Header
         var headerPanel = new Panel
         {
-            Size = new Size(880, 68),
+            Size = new Size(900, 68),
             Dock = DockStyle.Fill,
             BackColor = SurfaceDark,
             Padding = new Padding(16, 10, 16, 10),
@@ -128,7 +148,7 @@ public sealed class MainForm : Form
 
         var subtitleLabel = new Label
         {
-            Text = "Automatically launches your companion apps when Euro Truck Simulator 2 starts.",
+            Text = "Automatically launch your chosen apps whenever Euro Truck Simulator 2 or American Truck Simulator starts.",
             Font = new Font("Segoe UI", 8.8f),
             ForeColor = TextMuted,
             AutoSize = true,
@@ -142,10 +162,10 @@ public sealed class MainForm : Form
             ForeColor = AccentBlue,
             BackColor = ElevatedDark,
             AutoSize = false,
-            Size = new Size(195, 32),
+            Size = new Size(215, 32),
             TextAlign = ContentAlignment.MiddleCenter,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(headerPanel.Width - 211, 14)
+            Location = new Point(headerPanel.Width - 231, 14)
         };
 
         headerPanel.Controls.Add(titleLabel);
@@ -156,33 +176,46 @@ public sealed class MainForm : Form
         // 2. Action Toolbar
         var toolbarPanel = new Panel
         {
-            Size = new Size(880, 46),
+            Size = new Size(900, 46),
             Dock = DockStyle.Fill,
             BackColor = BgDark,
             Margin = new Padding(0, 0, 0, 6)
         };
 
-        _autoDetectBtn = CreateActionButton("Auto-Detect", 0, 4, 120, ElevatedDark, AccentBlue);
-        _autoDetectBtn.Click += async (_, _) => await RunAutoDetectAsync(forceRescan: true);
+        _addAppBtn = CreateActionButton("+ Add App ▾", 0, 4, 118, AccentBlue, Color.FromArgb(15, 23, 42));
+        _addAppBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
+        _addAppBtn.Click += (_, _) => _addMenu.Show(_addAppBtn, new Point(0, _addAppBtn.Height));
 
-        var editBtn = CreateActionButton("Edit", 128, 4, 86, SurfaceDark, TextPrimary);
+        _presetsBtn = CreateActionButton("Presets ▾", 126, 4, 104, ElevatedDark, AccentBlue);
+        _presetsBtn.Click += (_, _) => _presetsMenu.Show(_presetsBtn, new Point(0, _presetsBtn.Height));
+
+        var editBtn = CreateActionButton("Edit", 238, 4, 78, SurfaceDark, TextPrimary);
         editBtn.Click += (_, _) => EditSelectedApp();
 
-        var addBtn = CreateActionButton("Add", 222, 4, 80, SurfaceDark, TextPrimary);
-        addBtn.Click += (_, _) => AddNewApp();
-
-        var removeBtn = CreateActionButton("Remove", 310, 4, 84, SurfaceDark, DangerRed);
+        var removeBtn = CreateActionButton("Remove", 324, 4, 84, SurfaceDark, DangerRed);
         removeBtn.Click += (_, _) => DeleteSelectedApp();
 
-        _launchNowBtn = CreateActionButton("Launch Now (Test)", toolbarPanel.Width - 165, 4, 165, AccentBlue, Color.FromArgb(15, 23, 42));
+        _autoDetectBtn = CreateActionButton("Detect Missing Paths", 416, 4, 152, SurfaceDark, TextMuted);
+        _autoDetectBtn.Click += async (_, _) => await RunAutoDetectAsync(forceRescan: false);
+
+        _launchNowBtn = CreateActionButton("Launch Now (Test)", toolbarPanel.Width - 165, 4, 165, ElevatedDark, TextPrimary);
         _launchNowBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
         _launchNowBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _launchNowBtn.Click += async (_, _) => await RunManualLaunchAsync();
 
-        toolbarPanel.Controls.AddRange(new Control[] { _autoDetectBtn, editBtn, addBtn, removeBtn, _launchNowBtn });
+        toolbarPanel.Controls.AddRange(new Control[]
+        {
+            _addAppBtn, _presetsBtn, editBtn, removeBtn, _autoDetectBtn, _launchNowBtn
+        });
         rootLayout.Controls.Add(toolbarPanel, 0, 1);
 
-        // 3. Apps Grid
+        // 3. Apps Grid + Empty State Overlay
+        var gridContainer = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = SurfaceDark
+        };
+
         _appsGrid = CreateAppsGrid();
         _appsGrid.CellContentClick += AppsGrid_CellContentClick;
         _appsGrid.CellValueChanged += AppsGrid_CellValueChanged;
@@ -193,7 +226,22 @@ public sealed class MainForm : Form
                 EditSelectedApp();
             }
         };
-        rootLayout.Controls.Add(_appsGrid, 0, 2);
+
+        _emptyStateLabel = new Label
+        {
+            Text = "No companion apps added yet.\r\nClick '+ Add App' to choose any program on your PC, or open 'Presets' to quick-add popular ETS 2 / ATS tools.",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            ForeColor = TextMuted,
+            BackColor = SurfaceDark,
+            Font = new Font("Segoe UI", 10f),
+            Visible = false
+        };
+
+        gridContainer.Controls.Add(_appsGrid);
+        gridContainer.Controls.Add(_emptyStateLabel);
+        _emptyStateLabel.BringToFront();
+        rootLayout.Controls.Add(gridContainer, 0, 2);
 
         // 4. Settings Panel
         var settingsPanel = new Panel
@@ -217,7 +265,7 @@ public sealed class MainForm : Form
         _notifyCheck = new CheckBox
         {
             Text = "Show tray notifications",
-            Location = new Point(260, 12),
+            Location = new Point(250, 12),
             AutoSize = true,
             ForeColor = TextPrimary,
             Checked = _config.ShowNotifications
@@ -232,7 +280,7 @@ public sealed class MainForm : Form
         _pauseCheck = new CheckBox
         {
             Text = "Pause watching",
-            Location = new Point(460, 12),
+            Location = new Point(445, 12),
             AutoSize = true,
             ForeColor = WarningAmber
         };
@@ -244,46 +292,67 @@ public sealed class MainForm : Form
 
         var watchLabel = new Label
         {
-            Text = "Watched game process(es):",
+            Text = "Watch games:",
             Location = new Point(14, 44),
             AutoSize = true,
             ForeColor = TextMuted
         };
 
-        _watchedProcessBox = new TextBox
+        _ets2Check = new CheckBox
         {
-            Text = _config.WatchedProcesses,
-            Location = new Point(195, 41),
-            Size = new Size(260, 24),
+            Text = "ETS 2 (eurotrucks2)",
+            Location = new Point(112, 42),
+            AutoSize = true,
+            ForeColor = TextPrimary,
+            Checked = _config.WatchEts2
+        };
+        _ets2Check.CheckedChanged += GameToggle_CheckedChanged;
+
+        _atsCheck = new CheckBox
+        {
+            Text = "ATS (amtrucks)",
+            Location = new Point(268, 42),
+            AutoSize = true,
+            ForeColor = TextPrimary,
+            Checked = _config.WatchAts
+        };
+        _atsCheck.CheckedChanged += GameToggle_CheckedChanged;
+
+        var extraLabel = new Label
+        {
+            Text = "Extra process(es):",
+            Location = new Point(405, 44),
+            AutoSize = true,
+            ForeColor = TextMuted
+        };
+
+        _customProcessBox = new TextBox
+        {
+            Text = _config.CustomWatchedProcesses,
+            Location = new Point(522, 41),
+            Size = new Size(210, 24),
             BackColor = ElevatedDark,
             ForeColor = TextPrimary,
-            BorderStyle = BorderStyle.FixedSingle
+            BorderStyle = BorderStyle.FixedSingle,
+            PlaceholderText = "optional, comma-separated"
         };
 
-        var saveProcessBtn = CreateActionButton("Apply", 463, 39, 80, ElevatedDark, AccentBlue);
-        saveProcessBtn.Height = 26;
-        saveProcessBtn.Click += SaveWatchedProcess_Click;
-
-        var configHint = new Label
-        {
-            Text = "Comma-separated, e.g. eurotrucks2, amtrucks",
-            Location = new Point(553, 44),
-            AutoSize = true,
-            ForeColor = TextMuted,
-            Font = new Font("Segoe UI", 8.5f)
-        };
+        var applyProcessBtn = CreateActionButton("Apply", 740, 39, 76, ElevatedDark, AccentBlue);
+        applyProcessBtn.Height = 26;
+        applyProcessBtn.Click += SaveCustomProcesses_Click;
 
         settingsPanel.Controls.AddRange(new Control[]
         {
             _startupCheck, _notifyCheck, _pauseCheck,
-            watchLabel, _watchedProcessBox, saveProcessBtn, configHint
+            watchLabel, _ets2Check, _atsCheck,
+            extraLabel, _customProcessBox, applyProcessBtn
         });
         rootLayout.Controls.Add(settingsPanel, 0, 3);
 
         // 5. Log Panel
         var logContainer = new Panel
         {
-            Size = new Size(880, 160),
+            Size = new Size(900, 160),
             Dock = DockStyle.Fill,
             BackColor = SurfaceDark,
             Padding = new Padding(12, 8, 12, 10)
@@ -336,7 +405,7 @@ public sealed class MainForm : Form
         RefreshGrid();
     }
 
-    protected override async void OnShown(EventArgs e)
+    protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
 
@@ -346,14 +415,6 @@ public sealed class MainForm : Form
         }
 
         _watcher.Start();
-
-        // Automatically search for missing paths on first launch
-        if (!_config.InitialAutoDetectCompleted || _config.Apps.Any(a => string.IsNullOrWhiteSpace(a.ExecutablePath)))
-        {
-            await RunAutoDetectAsync(forceRescan: false);
-            _config.InitialAutoDetectCompleted = true;
-            SaveConfig();
-        }
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -415,18 +476,118 @@ public sealed class MainForm : Form
         _watcher.SetPaused(!_watcher.IsPaused);
     }
 
+    private void AddFromPicker(AppPickerMode mode)
+    {
+        using var picker = new AppPickerDialog(mode);
+        if (picker.ShowDialog(this) != DialogResult.OK || picker.SelectedApp is null)
+        {
+            return;
+        }
+
+        var picked = picker.SelectedApp;
+        var existing = _config.Apps.FirstOrDefault(a =>
+            a.ExecutablePath.Equals(picked.ExecutablePath, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            MessageBox.Show(this, $"'{existing.Name}' is already in your list.", "Already Added", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var newApp = new CompanionApp
+        {
+            Name = picked.Name,
+            ExecutablePath = picked.ExecutablePath,
+            ProcessName = picked.ProcessName,
+            Enabled = true,
+            LaunchDelaySeconds = 1
+        };
+
+        _config.Apps.Add(newApp);
+        SaveConfig();
+        RefreshGrid();
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] Added '{newApp.Name}' ({picked.Source}): {newApp.ExecutablePath}");
+    }
+
+    private async Task AddFromPresetAsync(CompanionApp presetTemplate)
+    {
+        var existing = _config.Apps.FirstOrDefault(a =>
+            a.Name.Equals(presetTemplate.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+        {
+            MessageBox.Show(this, $"'{existing.Name}' is already in your list.", "Already Added", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var candidate = presetTemplate.Clone();
+        candidate.Id = Guid.NewGuid().ToString("N");
+
+        _presetsBtn.Enabled = false;
+        _presetsBtn.Text = "Finding...";
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] Looking for preset '{candidate.Name}'...");
+
+        DetectionResult? detected = null;
+        try
+        {
+            detected = await Task.Run(() => AppAutoDetector.Detect(candidate));
+        }
+        finally
+        {
+            _presetsBtn.Enabled = true;
+            _presetsBtn.Text = "Presets ▾";
+        }
+
+        if (detected is not null)
+        {
+            candidate.ExecutablePath = detected.Path;
+            if (detected.Path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                candidate.ProcessName = Path.GetFileNameWithoutExtension(detected.Path);
+            }
+
+            _config.Apps.Add(candidate);
+            SaveConfig();
+            RefreshGrid();
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] Added preset '{candidate.Name}' ({detected.Source}): {detected.Path}");
+            return;
+        }
+
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] '{candidate.Name}' was not auto-detected. Opening editor so you can pick its executable.");
+        using var dialog = new AppEditDialog(candidate, isNew: true);
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            _config.Apps.Add(dialog.ResultApp);
+            SaveConfig();
+            RefreshGrid();
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] Added '{dialog.ResultApp.Name}'.");
+        }
+    }
+
     private async Task RunAutoDetectAsync(bool forceRescan)
     {
+        if (_config.Apps.Count == 0)
+        {
+            MessageBox.Show(this, "Your app list is empty. Click '+ Add App' or 'Presets' first.", "No Apps", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var targets = _config.Apps
+            .Where(a => forceRescan || !a.HasValidTarget())
+            .ToList();
+
+        if (targets.Count == 0)
+        {
+            AppendLog($"[{DateTime.Now:HH:mm:ss}] All configured apps already have valid paths.");
+            return;
+        }
+
         _autoDetectBtn.Enabled = false;
         _autoDetectBtn.Text = "Scanning...";
-        AppendLog($"[{DateTime.Now:HH:mm:ss}] Scanning for installed companion apps...");
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] Scanning for missing app paths...");
 
         try
         {
-            var targets = _config.Apps
-                .Where(a => forceRescan || !a.HasValidTarget())
-                .ToList();
-
             var foundCount = 0;
             var missingNames = new List<string>();
 
@@ -434,11 +595,6 @@ public sealed class MainForm : Form
             {
                 foreach (var app in targets)
                 {
-                    if (!forceRescan && app.HasValidTarget())
-                    {
-                        continue;
-                    }
-
                     var result = AppAutoDetector.Detect(app);
                     if (result is not null)
                     {
@@ -463,23 +619,29 @@ public sealed class MainForm : Form
 
             if (foundCount > 0)
             {
-                AppendLog($"[{DateTime.Now:HH:mm:ss}] Auto-detection completed: {foundCount} app(s) found.");
+                AppendLog($"[{DateTime.Now:HH:mm:ss}] Detection completed: {foundCount} path(s) found.");
             }
 
             if (missingNames.Count > 0)
             {
-                AppendLog($"[{DateTime.Now:HH:mm:ss}] Not found: {string.Join(", ", missingNames)}. Select a row and click 'Edit' to browse for its .exe manually.");
+                AppendLog($"[{DateTime.Now:HH:mm:ss}] Still not found: {string.Join(", ", missingNames)}. Double-click a row to browse manually.");
             }
         }
         finally
         {
             _autoDetectBtn.Enabled = true;
-            _autoDetectBtn.Text = "Auto-Detect";
+            _autoDetectBtn.Text = "Detect Missing Paths";
         }
     }
 
     private async Task RunManualLaunchAsync()
     {
+        if (_config.Apps.Count == 0)
+        {
+            MessageBox.Show(this, "Add at least one companion app before testing launch.", "No Apps Configured", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
         _launchNowBtn.Enabled = false;
         try
         {
@@ -590,18 +752,39 @@ public sealed class MainForm : Form
         }
     }
 
-    private void SaveWatchedProcess_Click(object? sender, EventArgs e)
+    private void GameToggle_CheckedChanged(object? sender, EventArgs e)
     {
-        var value = _watchedProcessBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            value = "eurotrucks2";
-            _watchedProcessBox.Text = value;
-        }
+        if (_suppressUiEvents) return;
 
-        _config.WatchedProcesses = value;
+        _config.WatchEts2 = _ets2Check.Checked;
+        _config.WatchAts = _atsCheck.Checked;
         SaveConfig();
-        AppendLog($"[{DateTime.Now:HH:mm:ss}] Updated watched process(es): {value}");
+
+        var watched = _config.GetWatchedProcessList();
+        AppendLog(watched.Length > 0
+            ? $"[{DateTime.Now:HH:mm:ss}] Monitoring updated: {string.Join(", ", watched)}"
+            : $"[{DateTime.Now:HH:mm:ss}] No games selected to monitor.");
+
+        if (_latestSnapshot is not null)
+        {
+            UpdateStatusDisplay(_latestSnapshot);
+        }
+    }
+
+    private void SaveCustomProcesses_Click(object? sender, EventArgs e)
+    {
+        _config.CustomWatchedProcesses = _customProcessBox.Text.Trim();
+        SaveConfig();
+
+        var watched = _config.GetWatchedProcessList();
+        AppendLog(watched.Length > 0
+            ? $"[{DateTime.Now:HH:mm:ss}] Monitoring updated: {string.Join(", ", watched)}"
+            : $"[{DateTime.Now:HH:mm:ss}] No games selected to monitor.");
+
+        if (_latestSnapshot is not null)
+        {
+            UpdateStatusDisplay(_latestSnapshot);
+        }
     }
 
     private void SaveConfig()
@@ -640,6 +823,12 @@ public sealed class MainForm : Form
         _trayPauseItem.Checked = snapshot.IsPaused;
         _suppressUiEvents = false;
 
+        UpdateStatusDisplay(snapshot);
+        UpdateGridRunningStates(snapshot);
+    }
+
+    private void UpdateStatusDisplay(WatcherSnapshot snapshot)
+    {
         if (snapshot.IsPaused)
         {
             _statusBadge.Text = "●  Watcher Paused";
@@ -650,23 +839,31 @@ public sealed class MainForm : Form
         }
         else if (snapshot.IsGameRunning)
         {
-            _statusBadge.Text = "●  Game Running";
+            var label = snapshot.DetectedGameProcess?.Equals("amtrucks", StringComparison.OrdinalIgnoreCase) == true
+                ? "ATS Running"
+                : snapshot.DetectedGameProcess?.Equals("eurotrucks2", StringComparison.OrdinalIgnoreCase) == true
+                    ? "ETS 2 Running"
+                    : "Game Running";
+            _statusBadge.Text = $"●  {label}";
             _statusBadge.ForeColor = SuccessGreen;
             _trayIcon.Icon = _runningIcon;
             Icon = _runningIcon;
-            _trayIcon.Text = $"ETS 2 Companion Launcher — {snapshot.DetectedGameProcess} running";
+            _trayIcon.Text = TruncateTrayText($"ETS 2 Companion — {snapshot.DetectedGameProcess} running");
         }
         else
         {
-            _statusBadge.Text = "●  Waiting for ETS 2";
-            _statusBadge.ForeColor = AccentBlue;
+            var summary = _config.GetWatchedSummaryLabel();
+            var waitingText = summary == "No Game Selected" ? "No Game Selected" : $"Waiting: {summary}";
+            _statusBadge.Text = $"●  {waitingText}";
+            _statusBadge.ForeColor = summary == "No Game Selected" ? WarningAmber : AccentBlue;
             _trayIcon.Icon = _watchingIcon;
             Icon = _watchingIcon;
-            _trayIcon.Text = "ETS 2 Companion Launcher — Waiting for ETS 2";
+            _trayIcon.Text = TruncateTrayText($"ETS 2 Companion — {waitingText}");
         }
-
-        UpdateGridRunningStates(snapshot);
     }
+
+    private static string TruncateTrayText(string text) =>
+        text.Length <= 63 ? text : text[..60] + "...";
 
     private void RefreshGrid()
     {
@@ -680,7 +877,7 @@ public sealed class MainForm : Form
             var hasValidPath = app.HasValidTarget();
             var pathDisplay = hasValidPath
                 ? app.ExecutablePath
-                : "Not configured — click 'Auto-Detect' or 'Edit'";
+                : "Not configured — double-click to select path";
 
             var isRunning = _latestSnapshot?.AppRunningStates.TryGetValue(app.Id, out var running) == true && running;
             var statusText = isRunning ? "Running" : "Stopped";
@@ -704,6 +901,9 @@ public sealed class MainForm : Form
                 row.Selected = true;
             }
         }
+
+        _emptyStateLabel.Visible = _config.Apps.Count == 0;
+        _autoDetectBtn.Visible = _config.Apps.Any(a => !a.HasValidTarget());
 
         _suppressUiEvents = false;
     }

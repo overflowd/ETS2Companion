@@ -8,6 +8,7 @@ using Microsoft.Win32;
 namespace ETS2CompanionLauncher.Services;
 
 public sealed record DetectionResult(string Path, string Source);
+public sealed record DiscoveredApp(string Name, string ExecutablePath, string ProcessName, string Source);
 
 public static class AppAutoDetector
 {
@@ -17,6 +18,234 @@ public static class AppAutoDetector
         "crash", "report", "redist", "vcredist", "dxsetup", "helper",
         "elevate", "squirrel", "createdump"
     };
+
+    public static List<DiscoveredApp> GetRunningUserApps()
+    {
+        var results = new Dictionary<string, DiscoveredApp>(StringComparer.OrdinalIgnoreCase);
+        var selfPath = Environment.ProcessPath ?? string.Empty;
+        var windowsDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+
+        var processes = Process.GetProcesses();
+        try
+        {
+            foreach (var proc in processes)
+            {
+                try
+                {
+                    var path = proc.MainModule?.FileName;
+                    if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(selfPath) &&
+                        path.Equals(selfPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(windowsDir) &&
+                        path.StartsWith(windowsDir, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (IsExcludedExecutable(path))
+                    {
+                        continue;
+                    }
+
+                    var title = string.Empty;
+                    try
+                    {
+                        var versionInfo = FileVersionInfo.GetVersionInfo(path);
+                        title = !string.IsNullOrWhiteSpace(versionInfo.ProductName)
+                            ? versionInfo.ProductName.Trim()
+                            : !string.IsNullOrWhiteSpace(versionInfo.FileDescription)
+                                ? versionInfo.FileDescription.Trim()
+                                : Path.GetFileNameWithoutExtension(path);
+                    }
+                    catch
+                    {
+                        title = Path.GetFileNameWithoutExtension(path);
+                    }
+
+                    if (!results.ContainsKey(path))
+                    {
+                        results[path] = new DiscoveredApp(
+                            title,
+                            path,
+                            proc.ProcessName,
+                            "Running");
+                    }
+                }
+                catch
+                {
+                    // Access denied or process exited; skip safely.
+                }
+            }
+        }
+        finally
+        {
+            foreach (var proc in processes)
+            {
+                proc.Dispose();
+            }
+        }
+
+        return results.Values
+            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public static List<DiscoveredApp> GetInstalledApps()
+    {
+        var byPath = new Dictionary<string, DiscoveredApp>(StringComparer.OrdinalIgnoreCase);
+
+        void AddIfValid(string name, string path, string source)
+        {
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            if (IsExcludedExecutable(path))
+            {
+                return;
+            }
+
+            var isSteamUrl = path.StartsWith("steam://", StringComparison.OrdinalIgnoreCase);
+            if (!isSteamUrl && (!path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || !File.Exists(path)))
+            {
+                return;
+            }
+
+            if (!byPath.ContainsKey(path))
+            {
+                var procName = isSteamUrl ? string.Empty : Path.GetFileNameWithoutExtension(path);
+                byPath[path] = new DiscoveredApp(name.Trim(), path, procName, source);
+            }
+        }
+
+        // 1. Start Menu shortcuts (.lnk and .url)
+        var shortcutDirs = new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.StartMenu),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu)
+        }
+        .Where(d => !string.IsNullOrWhiteSpace(d) && Directory.Exists(d))
+        .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dir in shortcutDirs)
+        {
+            foreach (var file in EnumerateFilesSafe(dir, maxDepth: 4))
+            {
+                var ext = Path.GetExtension(file);
+                var shortcutName = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrWhiteSpace(shortcutName) ||
+                    ExcludedExeKeywords.Any(k => shortcutName.Contains(k, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                if (ext.Equals(".lnk", StringComparison.OrdinalIgnoreCase))
+                {
+                    var target = ShortcutResolver.ResolveTarget(file);
+                    if (!string.IsNullOrWhiteSpace(target))
+                    {
+                        AddIfValid(shortcutName, target, "Start Menu");
+                    }
+                }
+                else if (ext.Equals(".url", StringComparison.OrdinalIgnoreCase))
+                {
+                    var url = ParseInternetShortcutUrl(file);
+                    if (!string.IsNullOrWhiteSpace(url) && url.StartsWith("steam://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AddIfValid(shortcutName, url, "Steam Shortcut");
+                    }
+                }
+            }
+        }
+
+        // 2. Steam installed apps/tools
+        foreach (var library in GetSteamLibraryPaths())
+        {
+            var steamAppsDir = Path.Combine(library, "steamapps");
+            if (!Directory.Exists(steamAppsDir))
+            {
+                continue;
+            }
+
+            try
+            {
+                foreach (var acfFile in Directory.EnumerateFiles(steamAppsDir, "appmanifest_*.acf"))
+                {
+                    var (name, installDir) = ParseAcfManifest(acfFile);
+                    if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(installDir))
+                    {
+                        continue;
+                    }
+
+                    var folder = Path.Combine(steamAppsDir, "common", installDir);
+                    var hints = new List<string> { name, installDir };
+                    var exe = FindBestExecutableInDirectory(folder, hints, maxDepth: 1);
+                    if (exe is not null)
+                    {
+                        AddIfValid(name, exe, "Steam");
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore enumeration issues.
+            }
+        }
+
+        // 3. Windows Uninstall Registry (DisplayIcon pointing to .exe)
+        var roots = new[]
+        {
+            (Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+            (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),
+            (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall")
+        };
+
+        foreach (var (root, subPath) in roots)
+        {
+            try
+            {
+                using var baseKey = root.OpenSubKey(subPath);
+                if (baseKey is null) continue;
+
+                foreach (var subKeyName in baseKey.GetSubKeyNames())
+                {
+                    try
+                    {
+                        using var appKey = baseKey.OpenSubKey(subKeyName);
+                        var displayName = appKey?.GetValue("DisplayName") as string;
+                        if (string.IsNullOrWhiteSpace(displayName)) continue;
+
+                        var iconPath = CleanIconPath(appKey?.GetValue("DisplayIcon") as string);
+                        if (!string.IsNullOrWhiteSpace(iconPath))
+                        {
+                            AddIfValid(displayName, iconPath, "Installed");
+                        }
+                    }
+                    catch
+                    {
+                        // Skip inaccessible key.
+                    }
+                }
+            }
+            catch
+            {
+                // Skip inaccessible root.
+            }
+        }
+
+        return byPath.Values
+            .OrderBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     public static DetectionResult? Detect(CompanionApp app)
     {
