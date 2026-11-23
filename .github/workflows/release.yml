@@ -61,23 +61,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = $env:GITHUB_REF_NAME
-          $notes = @'
-          ## ETS 2 Companion Launcher {TAG}
+          $changelog = if (Test-Path "CHANGELOG.md") { Get-Content "CHANGELOG.md" -Raw } else { "" }
+          $escapedTag = [regex]::Escape($tag)
+          $pattern = "(?ms)^## \[$escapedTag\][^\r\n]*\r?\n(.*?)(?=^## \[|\z)"
+          $entry = [regex]::Match($changelog, $pattern)
+          $sectionBody = if ($entry.Success) { $entry.Groups[1].Value.Trim() } else { "See commit history for changes in $tag." }
 
-          Automatically launches your chosen companion apps whenever **Euro Truck Simulator 2** (`eurotrucks2.exe`) or **American Truck Simulator** (`amtrucks.exe`) starts.
-
+          $downloads = @'
           ### Downloads
           - **`ETS2CompanionLauncher-{TAG}-win-x64-standalone.zip`** *(Recommended)* — Single-file self-contained build. Works on Windows 10/11 (64-bit) with no prerequisites.
           - **`ETS2CompanionLauncher-{TAG}-win-x64-net9.zip`** — Lightweight build for systems that already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0) installed.
-
-          ### Highlights
-          - Pure dark mode UI with dark Windows title bar & tray menus
-          - Quick toggles for **ETS 2**, **ATS**, and custom game processes
-          - **+ Add App** picker for Running Apps, Installed / Start Menu / Steam Apps, or custom `.exe` / `steam://` targets
-          - Optional **Presets** menu with auto-detection for popular tools (Lossless Scaling, Beam Eye Tracker, LookPilot, WestPlay, OpenTrack, TrackIR, SimHub, TruckersMP, TrucksBook, CrewChief, OBS Studio, Discord)
-          - Per-app launch delay, duplicate launch prevention, optional close-on-game-exit, and Windows startup minimized to tray
           '@.Replace('{TAG}', $tag)
 
+          $notes = "## ETS 2 Companion Launcher $tag`r`n`r`n$sectionBody`r`n`r`n$downloads"
           $notes | Out-File -FilePath "dist/release-notes.md" -Encoding utf8
 
           gh release create $tag `

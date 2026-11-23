@@ -1,0 +1,52 @@
+name: Sync Release Notes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-notes:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update GitHub Release notes from CHANGELOG.md
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if (-not (Test-Path "CHANGELOG.md")) { exit 0 }
+          $changelog = Get-Content "CHANGELOG.md" -Raw
+          $versionMatches = [regex]::Matches($changelog, "(?ms)^## \[(v[^\]]+)\][^\r\n]*\r?\n(.*?)(?=^## \[|\z)")
+
+          foreach ($m in $versionMatches) {
+            $tag = $m.Groups[1].Value.Trim()
+            $sectionBody = $m.Groups[2].Value.Trim()
+
+            gh release view $tag *> $null
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "Skipping $tag (release does not exist yet)."
+              continue
+            }
+
+            $downloads = @'
+          ### Downloads
+          - **`ETS2CompanionLauncher-{TAG}-win-x64-standalone.zip`** *(Recommended)* — Single-file self-contained build. Works on Windows 10/11 (64-bit) with no prerequisites.
+          - **`ETS2CompanionLauncher-{TAG}-win-x64-net9.zip`** — Lightweight build for systems that already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0) installed.
+          '@.Replace('{TAG}', $tag)
+
+            $notes = "## ETS 2 Companion Launcher $tag`r`n`r`n$sectionBody`r`n`r`n$downloads"
+            $tempFile = "notes-$tag.md"
+            $notes | Out-File -FilePath $tempFile -Encoding utf8
+
+            Write-Host "Updating release notes for $tag..."
+            gh release edit $tag --title "ETS 2 Companion Launcher $tag" --notes-file $tempFile
+          }
