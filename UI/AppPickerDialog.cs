@@ -11,14 +11,6 @@ public enum AppPickerMode
 
 public sealed class AppPickerDialog : Form
 {
-    private static readonly Color BgDark = Color.FromArgb(18, 21, 28);
-    private static readonly Color SurfaceDark = Color.FromArgb(27, 32, 43);
-    private static readonly Color ElevatedDark = Color.FromArgb(36, 43, 56);
-    private static readonly Color BorderDark = Color.FromArgb(46, 55, 72);
-    private static readonly Color TextPrimary = Color.FromArgb(241, 245, 249);
-    private static readonly Color TextMuted = Color.FromArgb(148, 163, 184);
-    private static readonly Color AccentBlue = Color.FromArgb(56, 189, 248);
-
     private readonly Button _runningTabBtn;
     private readonly Button _installedTabBtn;
     private readonly TextBox _searchBox;
@@ -42,9 +34,10 @@ public sealed class AppPickerDialog : Form
         MinimumSize = new Size(680, 460);
         Size = new Size(740, 520);
         StartPosition = FormStartPosition.CenterParent;
-        BackColor = BgDark;
-        ForeColor = TextPrimary;
+        BackColor = DarkTheme.Background;
+        ForeColor = DarkTheme.TextPrimary;
         Font = new Font("Segoe UI", 9.5f);
+        DarkTheme.ApplyDarkTitleBar(this);
 
         var root = new TableLayoutPanel
         {
@@ -52,23 +45,23 @@ public sealed class AppPickerDialog : Form
             ColumnCount = 1,
             RowCount = 4,
             Padding = new Padding(14),
-            BackColor = BgDark
+            BackColor = DarkTheme.Background
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));  // Mode tabs
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));  // Search bar
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // Grid
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));  // Footer
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
         Controls.Add(root);
 
         // 1. Mode tabs
-        var tabPanel = new Panel { Dock = DockStyle.Fill, BackColor = BgDark };
-        _runningTabBtn = CreateButton("Running Apps", 0, 2, 140, 32, ElevatedDark, TextPrimary);
+        var tabPanel = new Panel { Size = new Size(682, 42), Dock = DockStyle.Fill, BackColor = DarkTheme.Background };
+        _runningTabBtn = DarkTheme.CreateButton("Running Apps", 0, 2, 140, 32);
         _runningTabBtn.Click += async (_, _) => await SwitchModeAsync(AppPickerMode.Running);
 
-        _installedTabBtn = CreateButton("Installed Apps (Start Menu & Steam)", 148, 2, 255, 32, SurfaceDark, TextMuted);
+        _installedTabBtn = DarkTheme.CreateButton("Installed Apps (Start Menu & Steam)", 148, 2, 255, 32);
         _installedTabBtn.Click += async (_, _) => await SwitchModeAsync(AppPickerMode.Installed);
 
-        _refreshBtn = CreateButton("Refresh", 590, 2, 92, 32, SurfaceDark, AccentBlue);
+        _refreshBtn = DarkTheme.CreateButton("Refresh", 590, 2, 92, 32);
         _refreshBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _refreshBtn.Click += async (_, _) =>
         {
@@ -76,17 +69,16 @@ public sealed class AppPickerDialog : Form
             await LoadItemsAsync();
         };
 
-        tabPanel.Size = new Size(682, 42);
         tabPanel.Controls.AddRange(new Control[] { _runningTabBtn, _installedTabBtn, _refreshBtn });
         root.Controls.Add(tabPanel, 0, 0);
 
         // 2. Search bar
-        var searchPanel = new Panel { Dock = DockStyle.Fill, BackColor = BgDark, Padding = new Padding(0, 4, 0, 6) };
+        var searchPanel = new Panel { Size = new Size(682, 40), Dock = DockStyle.Fill, BackColor = DarkTheme.Background, Padding = new Padding(0, 4, 0, 6) };
         var searchLabel = new Label
         {
             Text = "Search:",
             AutoSize = true,
-            ForeColor = TextMuted,
+            ForeColor = DarkTheme.TextSecondary,
             Location = new Point(0, 8)
         };
         _searchBox = new TextBox
@@ -94,14 +86,13 @@ public sealed class AppPickerDialog : Form
             Location = new Point(58, 5),
             Size = new Size(624, 26),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-            BackColor = ElevatedDark,
-            ForeColor = TextPrimary,
+            BackColor = DarkTheme.Elevated,
+            ForeColor = DarkTheme.TextPrimary,
             BorderStyle = BorderStyle.FixedSingle,
             PlaceholderText = "Type an app name or path to filter..."
         };
         _searchBox.TextChanged += (_, _) => ApplyFilter();
 
-        searchPanel.Size = new Size(682, 40);
         searchPanel.Controls.Add(searchLabel);
         searchPanel.Controls.Add(_searchBox);
         root.Controls.Add(searchPanel, 0, 1);
@@ -110,9 +101,9 @@ public sealed class AppPickerDialog : Form
         _grid = new DataGridView
         {
             Dock = DockStyle.Fill,
-            BackgroundColor = SurfaceDark,
+            BackgroundColor = DarkTheme.Surface,
             BorderStyle = BorderStyle.None,
-            GridColor = BorderDark,
+            GridColor = DarkTheme.Border,
             CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
             ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
             EnableHeadersVisualStyles = false,
@@ -131,18 +122,18 @@ public sealed class AppPickerDialog : Form
 
         _grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
         {
-            BackColor = ElevatedDark,
-            ForeColor = TextMuted,
+            BackColor = DarkTheme.Elevated,
+            ForeColor = DarkTheme.TextSecondary,
             Font = new Font("Segoe UI", 9f, FontStyle.Bold),
             Padding = new Padding(6, 0, 6, 0)
         };
 
         _grid.DefaultCellStyle = new DataGridViewCellStyle
         {
-            BackColor = SurfaceDark,
-            ForeColor = TextPrimary,
-            SelectionBackColor = Color.FromArgb(40, 56, 82),
-            SelectionForeColor = TextPrimary,
+            BackColor = DarkTheme.Surface,
+            ForeColor = DarkTheme.TextPrimary,
+            SelectionBackColor = DarkTheme.Selection,
+            SelectionForeColor = DarkTheme.TextPrimary,
             Padding = new Padding(6, 0, 6, 0)
         };
 
@@ -161,20 +152,20 @@ public sealed class AppPickerDialog : Form
         root.Controls.Add(_grid, 0, 2);
 
         // 4. Footer
-        var footer = new Panel { Size = new Size(682, 44), Dock = DockStyle.Fill, BackColor = BgDark };
+        var footer = new Panel { Size = new Size(682, 44), Dock = DockStyle.Fill, BackColor = DarkTheme.Background };
         _statusLabel = new Label
         {
             Text = "Loading...",
             AutoSize = true,
-            ForeColor = TextMuted,
+            ForeColor = DarkTheme.TextSecondary,
             Location = new Point(0, 14)
         };
 
-        var cancelBtn = CreateButton("Cancel", 494, 8, 88, 32, SurfaceDark, TextPrimary);
+        var cancelBtn = DarkTheme.CreateButton("Cancel", 494, 8, 88, 32);
         cancelBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         cancelBtn.DialogResult = DialogResult.Cancel;
 
-        _selectBtn = CreateButton("Select", 590, 8, 92, 32, AccentBlue, Color.FromArgb(15, 23, 42));
+        _selectBtn = DarkTheme.CreateButton("Select", 590, 8, 92, 32, primary: true);
         _selectBtn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         _selectBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _selectBtn.Click += (_, _) => ConfirmSelection();
@@ -205,12 +196,12 @@ public sealed class AppPickerDialog : Form
     private void UpdateTabStyling()
     {
         var isRunning = _mode == AppPickerMode.Running;
-        _runningTabBtn.BackColor = isRunning ? ElevatedDark : SurfaceDark;
-        _runningTabBtn.ForeColor = isRunning ? AccentBlue : TextMuted;
+        _runningTabBtn.BackColor = isRunning ? DarkTheme.AccentPrimary : DarkTheme.Surface;
+        _runningTabBtn.ForeColor = isRunning ? DarkTheme.AccentOnPrimary : DarkTheme.TextSecondary;
         _runningTabBtn.Font = new Font("Segoe UI", 9.5f, isRunning ? FontStyle.Bold : FontStyle.Regular);
 
-        _installedTabBtn.BackColor = !isRunning ? ElevatedDark : SurfaceDark;
-        _installedTabBtn.ForeColor = !isRunning ? AccentBlue : TextMuted;
+        _installedTabBtn.BackColor = !isRunning ? DarkTheme.AccentPrimary : DarkTheme.Surface;
+        _installedTabBtn.ForeColor = !isRunning ? DarkTheme.AccentOnPrimary : DarkTheme.TextSecondary;
         _installedTabBtn.Font = new Font("Segoe UI", 9.5f, !isRunning ? FontStyle.Bold : FontStyle.Regular);
     }
 
@@ -269,8 +260,8 @@ public sealed class AppPickerDialog : Form
             var idx = _grid.Rows.Add(item.Name, item.Source, item.ExecutablePath);
             var row = _grid.Rows[idx];
             row.Tag = item;
-            row.Cells[1].Style.ForeColor = AccentBlue;
-            row.Cells[2].Style.ForeColor = TextMuted;
+            row.Cells[1].Style.ForeColor = DarkTheme.TextSecondary;
+            row.Cells[2].Style.ForeColor = DarkTheme.TextMuted;
         }
 
         _statusLabel.Text = $"{filtered.Count} app(s) shown";
@@ -287,22 +278,5 @@ public sealed class AppPickerDialog : Form
         SelectedApp = app;
         DialogResult = DialogResult.OK;
         Close();
-    }
-
-    private static Button CreateButton(string text, int x, int y, int width, int height, Color backColor, Color foreColor)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Location = new Point(x, y),
-            Size = new Size(width, height),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = backColor,
-            ForeColor = foreColor,
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderColor = BorderDark;
-        btn.FlatAppearance.BorderSize = 1;
-        return btn;
     }
 }

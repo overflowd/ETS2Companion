@@ -6,17 +6,6 @@ namespace ETS2CompanionLauncher.UI;
 
 public sealed class MainForm : Form
 {
-    private static readonly Color BgDark = Color.FromArgb(18, 21, 28);
-    private static readonly Color SurfaceDark = Color.FromArgb(27, 32, 43);
-    private static readonly Color ElevatedDark = Color.FromArgb(36, 43, 56);
-    private static readonly Color BorderDark = Color.FromArgb(46, 55, 72);
-    private static readonly Color TextPrimary = Color.FromArgb(241, 245, 249);
-    private static readonly Color TextMuted = Color.FromArgb(148, 163, 184);
-    private static readonly Color AccentBlue = Color.FromArgb(56, 189, 248);
-    private static readonly Color SuccessGreen = Color.FromArgb(34, 197, 94);
-    private static readonly Color WarningAmber = Color.FromArgb(245, 158, 11);
-    private static readonly Color DangerRed = Color.FromArgb(239, 68, 68);
-
     private readonly ConfigService _configService;
     private readonly AppConfig _config;
     private readonly GameWatcherService _watcher;
@@ -65,12 +54,14 @@ public sealed class MainForm : Form
         MinimumSize = new Size(900, 620);
         Size = new Size(950, 660);
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = BgDark;
-        ForeColor = TextPrimary;
+        BackColor = DarkTheme.Background;
+        ForeColor = DarkTheme.TextPrimary;
         Font = new Font("Segoe UI", 9.5f);
+        DarkTheme.ApplyDarkTitleBar(this);
 
         // --- System Tray ---
         var trayMenu = new ContextMenuStrip();
+        DarkTheme.StyleMenu(trayMenu);
         var openItem = new ToolStripMenuItem("Open Window", null, (_, _) => RestoreFromTray());
         openItem.Font = new Font(openItem.Font, FontStyle.Bold);
         var launchNowTrayItem = new ToolStripMenuItem("Launch Apps Now", null, async (_, _) => await RunManualLaunchAsync());
@@ -98,6 +89,7 @@ public sealed class MainForm : Form
 
         // --- Add App Dropdown Menu ---
         _addMenu = new ContextMenuStrip();
+        DarkTheme.StyleMenu(_addMenu);
         _addMenu.Items.Add("Pick from Running Apps...", null, (_, _) => AddFromPicker(AppPickerMode.Running));
         _addMenu.Items.Add("Pick from Installed / Start Menu...", null, (_, _) => AddFromPicker(AppPickerMode.Installed));
         _addMenu.Items.Add(new ToolStripSeparator());
@@ -105,6 +97,7 @@ public sealed class MainForm : Form
 
         // --- Popular Presets Dropdown Menu ---
         _presetsMenu = new ContextMenuStrip();
+        DarkTheme.StyleMenu(_presetsMenu);
         foreach (var preset in AppPresets.GetPopularPresets())
         {
             var captured = preset;
@@ -118,13 +111,13 @@ public sealed class MainForm : Form
             ColumnCount = 1,
             RowCount = 5,
             Padding = new Padding(16),
-            BackColor = BgDark
+            BackColor = DarkTheme.Background
         };
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));   // Header
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));   // Toolbar
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 60));    // Grid
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));   // Settings
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40));    // Log
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
         Controls.Add(rootLayout);
 
         // 1. Header
@@ -132,7 +125,7 @@ public sealed class MainForm : Form
         {
             Size = new Size(900, 68),
             Dock = DockStyle.Fill,
-            BackColor = SurfaceDark,
+            BackColor = DarkTheme.Surface,
             Padding = new Padding(16, 10, 16, 10),
             Margin = new Padding(0, 0, 0, 10)
         };
@@ -141,7 +134,7 @@ public sealed class MainForm : Form
         {
             Text = "ETS 2 Companion Launcher",
             Font = new Font("Segoe UI", 13.5f, FontStyle.Bold),
-            ForeColor = TextPrimary,
+            ForeColor = DarkTheme.TextPrimary,
             AutoSize = true,
             Location = new Point(16, 8)
         };
@@ -150,17 +143,17 @@ public sealed class MainForm : Form
         {
             Text = "Automatically launch your chosen apps whenever Euro Truck Simulator 2 or American Truck Simulator starts.",
             Font = new Font("Segoe UI", 8.8f),
-            ForeColor = TextMuted,
+            ForeColor = DarkTheme.TextSecondary,
             AutoSize = true,
             Location = new Point(17, 34)
         };
 
         _statusBadge = new Label
         {
-            Text = "●  Waiting for ETS 2",
+            Text = "●  Waiting: ETS 2",
             Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
-            ForeColor = AccentBlue,
-            BackColor = ElevatedDark,
+            ForeColor = DarkTheme.TextPrimary,
+            BackColor = DarkTheme.Elevated,
             AutoSize = false,
             Size = new Size(215, 32),
             TextAlign = ContentAlignment.MiddleCenter,
@@ -178,27 +171,27 @@ public sealed class MainForm : Form
         {
             Size = new Size(900, 46),
             Dock = DockStyle.Fill,
-            BackColor = BgDark,
+            BackColor = DarkTheme.Background,
             Margin = new Padding(0, 0, 0, 6)
         };
 
-        _addAppBtn = CreateActionButton("+ Add App ▾", 0, 4, 118, AccentBlue, Color.FromArgb(15, 23, 42));
+        _addAppBtn = DarkTheme.CreateButton("+ Add App ▾", 0, 4, 118, 32, primary: true);
         _addAppBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
         _addAppBtn.Click += (_, _) => _addMenu.Show(_addAppBtn, new Point(0, _addAppBtn.Height));
 
-        _presetsBtn = CreateActionButton("Presets ▾", 126, 4, 104, ElevatedDark, AccentBlue);
+        _presetsBtn = DarkTheme.CreateButton("Presets ▾", 126, 4, 104, 32);
         _presetsBtn.Click += (_, _) => _presetsMenu.Show(_presetsBtn, new Point(0, _presetsBtn.Height));
 
-        var editBtn = CreateActionButton("Edit", 238, 4, 78, SurfaceDark, TextPrimary);
+        var editBtn = DarkTheme.CreateButton("Edit", 238, 4, 78, 32);
         editBtn.Click += (_, _) => EditSelectedApp();
 
-        var removeBtn = CreateActionButton("Remove", 324, 4, 84, SurfaceDark, DangerRed);
+        var removeBtn = DarkTheme.CreateButton("Remove", 324, 4, 84, 32, foreColorOverride: DarkTheme.Danger);
         removeBtn.Click += (_, _) => DeleteSelectedApp();
 
-        _autoDetectBtn = CreateActionButton("Detect Missing Paths", 416, 4, 152, SurfaceDark, TextMuted);
+        _autoDetectBtn = DarkTheme.CreateButton("Detect Missing Paths", 416, 4, 152, 32, foreColorOverride: DarkTheme.TextSecondary);
         _autoDetectBtn.Click += async (_, _) => await RunAutoDetectAsync(forceRescan: false);
 
-        _launchNowBtn = CreateActionButton("Launch Now (Test)", toolbarPanel.Width - 165, 4, 165, ElevatedDark, TextPrimary);
+        _launchNowBtn = DarkTheme.CreateButton("Launch Now (Test)", toolbarPanel.Width - 165, 4, 165, 32);
         _launchNowBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
         _launchNowBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         _launchNowBtn.Click += async (_, _) => await RunManualLaunchAsync();
@@ -213,7 +206,7 @@ public sealed class MainForm : Form
         var gridContainer = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = SurfaceDark
+            BackColor = DarkTheme.Surface
         };
 
         _appsGrid = CreateAppsGrid();
@@ -232,8 +225,8 @@ public sealed class MainForm : Form
             Text = "No companion apps added yet.\r\nClick '+ Add App' to choose any program on your PC, or open 'Presets' to quick-add popular ETS 2 / ATS tools.",
             Dock = DockStyle.Fill,
             TextAlign = ContentAlignment.MiddleCenter,
-            ForeColor = TextMuted,
-            BackColor = SurfaceDark,
+            ForeColor = DarkTheme.TextSecondary,
+            BackColor = DarkTheme.Surface,
             Font = new Font("Segoe UI", 10f),
             Visible = false
         };
@@ -247,7 +240,7 @@ public sealed class MainForm : Form
         var settingsPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = SurfaceDark,
+            BackColor = DarkTheme.Surface,
             Padding = new Padding(14, 10, 14, 10),
             Margin = new Padding(0, 10, 0, 10)
         };
@@ -257,7 +250,7 @@ public sealed class MainForm : Form
             Text = "Start minimized with Windows",
             Location = new Point(14, 12),
             AutoSize = true,
-            ForeColor = TextPrimary,
+            ForeColor = DarkTheme.TextPrimary,
             Checked = StartupService.IsEnabled()
         };
         _startupCheck.CheckedChanged += StartupCheck_CheckedChanged;
@@ -267,7 +260,7 @@ public sealed class MainForm : Form
             Text = "Show tray notifications",
             Location = new Point(250, 12),
             AutoSize = true,
-            ForeColor = TextPrimary,
+            ForeColor = DarkTheme.TextPrimary,
             Checked = _config.ShowNotifications
         };
         _notifyCheck.CheckedChanged += (_, _) =>
@@ -282,7 +275,7 @@ public sealed class MainForm : Form
             Text = "Pause watching",
             Location = new Point(445, 12),
             AutoSize = true,
-            ForeColor = WarningAmber
+            ForeColor = DarkTheme.TextSecondary
         };
         _pauseCheck.CheckedChanged += (_, _) =>
         {
@@ -295,7 +288,7 @@ public sealed class MainForm : Form
             Text = "Watch games:",
             Location = new Point(14, 44),
             AutoSize = true,
-            ForeColor = TextMuted
+            ForeColor = DarkTheme.TextSecondary
         };
 
         _ets2Check = new CheckBox
@@ -303,7 +296,7 @@ public sealed class MainForm : Form
             Text = "ETS 2 (eurotrucks2)",
             Location = new Point(112, 42),
             AutoSize = true,
-            ForeColor = TextPrimary,
+            ForeColor = DarkTheme.TextPrimary,
             Checked = _config.WatchEts2
         };
         _ets2Check.CheckedChanged += GameToggle_CheckedChanged;
@@ -313,7 +306,7 @@ public sealed class MainForm : Form
             Text = "ATS (amtrucks)",
             Location = new Point(268, 42),
             AutoSize = true,
-            ForeColor = TextPrimary,
+            ForeColor = DarkTheme.TextPrimary,
             Checked = _config.WatchAts
         };
         _atsCheck.CheckedChanged += GameToggle_CheckedChanged;
@@ -323,7 +316,7 @@ public sealed class MainForm : Form
             Text = "Extra process(es):",
             Location = new Point(405, 44),
             AutoSize = true,
-            ForeColor = TextMuted
+            ForeColor = DarkTheme.TextSecondary
         };
 
         _customProcessBox = new TextBox
@@ -331,14 +324,13 @@ public sealed class MainForm : Form
             Text = _config.CustomWatchedProcesses,
             Location = new Point(522, 41),
             Size = new Size(210, 24),
-            BackColor = ElevatedDark,
-            ForeColor = TextPrimary,
+            BackColor = DarkTheme.Elevated,
+            ForeColor = DarkTheme.TextPrimary,
             BorderStyle = BorderStyle.FixedSingle,
             PlaceholderText = "optional, comma-separated"
         };
 
-        var applyProcessBtn = CreateActionButton("Apply", 740, 39, 76, ElevatedDark, AccentBlue);
-        applyProcessBtn.Height = 26;
+        var applyProcessBtn = DarkTheme.CreateButton("Apply", 740, 39, 76, 26);
         applyProcessBtn.Click += SaveCustomProcesses_Click;
 
         settingsPanel.Controls.AddRange(new Control[]
@@ -354,7 +346,7 @@ public sealed class MainForm : Form
         {
             Size = new Size(900, 160),
             Dock = DockStyle.Fill,
-            BackColor = SurfaceDark,
+            BackColor = DarkTheme.Surface,
             Padding = new Padding(12, 8, 12, 10)
         };
 
@@ -363,7 +355,7 @@ public sealed class MainForm : Form
             Text = "Activity Log",
             Dock = DockStyle.Top,
             Height = 22,
-            ForeColor = TextMuted,
+            ForeColor = DarkTheme.TextSecondary,
             Font = new Font("Segoe UI", 8.8f, FontStyle.Bold)
         };
 
@@ -373,8 +365,8 @@ public sealed class MainForm : Form
             Multiline = true,
             ReadOnly = true,
             ScrollBars = ScrollBars.Vertical,
-            BackColor = Color.FromArgb(14, 17, 23),
-            ForeColor = Color.FromArgb(203, 213, 225),
+            BackColor = DarkTheme.LogBackground,
+            ForeColor = Color.FromArgb(208, 208, 208),
             BorderStyle = BorderStyle.None,
             Font = new Font("Consolas", 9f)
         };
@@ -383,8 +375,9 @@ public sealed class MainForm : Form
         {
             Text = "Clear",
             AutoSize = true,
-            LinkColor = AccentBlue,
-            ActiveLinkColor = TextPrimary,
+            LinkColor = DarkTheme.TextSecondary,
+            ActiveLinkColor = DarkTheme.TextPrimary,
+            VisitedLinkColor = DarkTheme.TextSecondary,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
             Location = new Point(logContainer.Width - 54, 8)
         };
@@ -832,7 +825,7 @@ public sealed class MainForm : Form
         if (snapshot.IsPaused)
         {
             _statusBadge.Text = "●  Watcher Paused";
-            _statusBadge.ForeColor = TextMuted;
+            _statusBadge.ForeColor = DarkTheme.TextMuted;
             _trayIcon.Icon = _pausedIcon;
             Icon = _pausedIcon;
             _trayIcon.Text = "ETS 2 Companion Launcher — Paused";
@@ -845,7 +838,7 @@ public sealed class MainForm : Form
                     ? "ETS 2 Running"
                     : "Game Running";
             _statusBadge.Text = $"●  {label}";
-            _statusBadge.ForeColor = SuccessGreen;
+            _statusBadge.ForeColor = DarkTheme.Success;
             _trayIcon.Icon = _runningIcon;
             Icon = _runningIcon;
             _trayIcon.Text = TruncateTrayText($"ETS 2 Companion — {snapshot.DetectedGameProcess} running");
@@ -855,7 +848,7 @@ public sealed class MainForm : Form
             var summary = _config.GetWatchedSummaryLabel();
             var waitingText = summary == "No Game Selected" ? "No Game Selected" : $"Waiting: {summary}";
             _statusBadge.Text = $"●  {waitingText}";
-            _statusBadge.ForeColor = summary == "No Game Selected" ? WarningAmber : AccentBlue;
+            _statusBadge.ForeColor = summary == "No Game Selected" ? DarkTheme.Warning : DarkTheme.TextPrimary;
             _trayIcon.Icon = _watchingIcon;
             Icon = _watchingIcon;
             _trayIcon.Text = TruncateTrayText($"ETS 2 Companion — {waitingText}");
@@ -893,8 +886,8 @@ public sealed class MainForm : Form
             var row = _appsGrid.Rows[rowIndex];
             row.Tag = app;
 
-            row.Cells[2].Style.ForeColor = hasValidPath ? TextMuted : WarningAmber;
-            row.Cells[5].Style.ForeColor = isRunning ? SuccessGreen : TextMuted;
+            row.Cells[2].Style.ForeColor = hasValidPath ? DarkTheme.TextSecondary : DarkTheme.Warning;
+            row.Cells[5].Style.ForeColor = isRunning ? DarkTheme.Success : DarkTheme.TextMuted;
 
             if (selectedId is not null && app.Id == selectedId)
             {
@@ -920,7 +913,7 @@ public sealed class MainForm : Form
 
             var isRunning = snapshot.AppRunningStates.TryGetValue(app.Id, out var running) && running;
             row.Cells[5].Value = isRunning ? "Running" : "Stopped";
-            row.Cells[5].Style.ForeColor = isRunning ? SuccessGreen : TextMuted;
+            row.Cells[5].Style.ForeColor = isRunning ? DarkTheme.Success : DarkTheme.TextMuted;
         }
         _suppressUiEvents = false;
     }
@@ -1001,9 +994,9 @@ public sealed class MainForm : Form
         var grid = new DataGridView
         {
             Dock = DockStyle.Fill,
-            BackgroundColor = SurfaceDark,
+            BackgroundColor = DarkTheme.Surface,
             BorderStyle = BorderStyle.None,
-            GridColor = BorderDark,
+            GridColor = DarkTheme.Border,
             CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
             ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
             EnableHeadersVisualStyles = false,
@@ -1021,18 +1014,18 @@ public sealed class MainForm : Form
 
         grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
         {
-            BackColor = ElevatedDark,
-            ForeColor = TextMuted,
+            BackColor = DarkTheme.Elevated,
+            ForeColor = DarkTheme.TextSecondary,
             Font = new Font("Segoe UI", 9f, FontStyle.Bold),
             Padding = new Padding(6, 0, 6, 0)
         };
 
         grid.DefaultCellStyle = new DataGridViewCellStyle
         {
-            BackColor = SurfaceDark,
-            ForeColor = TextPrimary,
-            SelectionBackColor = Color.FromArgb(40, 56, 82),
-            SelectionForeColor = TextPrimary,
+            BackColor = DarkTheme.Surface,
+            ForeColor = DarkTheme.TextPrimary,
+            SelectionBackColor = DarkTheme.Selection,
+            SelectionForeColor = DarkTheme.TextPrimary,
             Padding = new Padding(6, 0, 6, 0)
         };
 
@@ -1084,22 +1077,5 @@ public sealed class MainForm : Form
 
         grid.Columns.AddRange(colEnabled, colName, colPath, colDelay, colClose, colStatus);
         return grid;
-    }
-
-    private static Button CreateActionButton(string text, int x, int y, int width, Color backColor, Color foreColor)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Location = new Point(x, y),
-            Size = new Size(width, 32),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = backColor,
-            ForeColor = foreColor,
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderColor = BorderDark;
-        btn.FlatAppearance.BorderSize = 1;
-        return btn;
     }
 }

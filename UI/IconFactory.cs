@@ -23,32 +23,38 @@ public static class IconFactory
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Color.Transparent);
 
-        var bgColor = Color.FromArgb(24, 30, 42);
+        var bgColor = Color.FromArgb(20, 20, 20);
+        var borderColor = state switch
+        {
+            TrayIconState.GameRunning => Color.FromArgb(34, 197, 94),
+            TrayIconState.Paused => Color.FromArgb(95, 95, 95),
+            _ => Color.FromArgb(180, 180, 180)
+        };
         var accentColor = state switch
         {
             TrayIconState.GameRunning => Color.FromArgb(34, 197, 94),
-            TrayIconState.Paused => Color.FromArgb(148, 163, 184),
-            _ => Color.FromArgb(56, 189, 248)
+            TrayIconState.Paused => Color.FromArgb(115, 115, 115),
+            _ => Color.FromArgb(235, 235, 235)
         };
 
         // Rounded badge background
         using (var path = CreateRoundedRect(new Rectangle(1, 1, 29, 29), 7))
         using (var bgBrush = new SolidBrush(bgColor))
-        using (var borderPen = new Pen(accentColor, 2f))
+        using (var borderPen = new Pen(borderColor, 1.8f))
         {
             g.FillPath(bgBrush, path);
             g.DrawPath(borderPen, path);
         }
 
-        // Stylized steering wheel / road emblem
-        using (var ringPen = new Pen(Color.FromArgb(241, 245, 249), 2.2f))
+        // Stylized steering wheel emblem
+        using (var ringPen = new Pen(Color.FromArgb(235, 235, 235), 2.1f))
         {
             g.DrawEllipse(ringPen, 7, 7, 17, 17);
             g.DrawLine(ringPen, 8, 15, 23, 15);
             g.DrawLine(ringPen, 15.5f, 15.5f, 15.5f, 23.5f);
         }
 
-        // Center hub dot in accent color
+        // Center hub dot
         using (var hubBrush = new SolidBrush(accentColor))
         {
             g.FillEllipse(hubBrush, 12.5f, 12.5f, 6, 6);

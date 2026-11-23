@@ -6,13 +6,6 @@ namespace ETS2CompanionLauncher.UI;
 
 public sealed class AppEditDialog : Form
 {
-    private static readonly Color BgDark = Color.FromArgb(18, 21, 28);
-    private static readonly Color SurfaceDark = Color.FromArgb(27, 32, 43);
-    private static readonly Color InputDark = Color.FromArgb(36, 43, 56);
-    private static readonly Color TextPrimary = Color.FromArgb(241, 245, 249);
-    private static readonly Color TextMuted = Color.FromArgb(148, 163, 184);
-    private static readonly Color AccentBlue = Color.FromArgb(56, 189, 248);
-
     private readonly TextBox _nameBox;
     private readonly TextBox _pathBox;
     private readonly TextBox _argsBox;
@@ -35,22 +28,23 @@ public sealed class AppEditDialog : Form
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
         ClientSize = new Size(600, 442);
-        BackColor = BgDark;
-        ForeColor = TextPrimary;
+        BackColor = DarkTheme.Background;
+        ForeColor = DarkTheme.TextPrimary;
         Font = new Font("Segoe UI", 9.5f);
+        DarkTheme.ApplyDarkTitleBar(this);
 
         var y = 18;
 
         // Quick-pick bar at top
-        var pickRunningBtn = CreateButton("Pick from Running Apps...", 20, y, 185, SurfaceDark, AccentBlue);
+        var pickRunningBtn = DarkTheme.CreateButton("Pick from Running Apps...", 20, y, 185, 30);
         pickRunningBtn.Click += (_, _) => OpenPicker(AppPickerMode.Running);
         Controls.Add(pickRunningBtn);
 
-        var pickInstalledBtn = CreateButton("Pick from Installed / Start Menu...", 213, y, 225, SurfaceDark, AccentBlue);
+        var pickInstalledBtn = DarkTheme.CreateButton("Pick from Installed / Start Menu...", 213, y, 225, 30);
         pickInstalledBtn.Click += (_, _) => OpenPicker(AppPickerMode.Installed);
         Controls.Add(pickInstalledBtn);
 
-        var browseTopBtn = CreateButton("Browse .exe...", 446, y, 134, SurfaceDark, TextPrimary);
+        var browseTopBtn = DarkTheme.CreateButton("Browse .exe...", 446, y, 134, 30);
         browseTopBtn.Click += BrowseBtn_Click;
         Controls.Add(browseTopBtn);
         y += 46;
@@ -64,7 +58,7 @@ public sealed class AppEditDialog : Form
         _pathBox = CreateTextBox(20, y + 22, 470, ResultApp.ExecutablePath);
         Controls.Add(_pathBox);
 
-        var detectBtn = CreateButton("Detect", 498, y + 20, 82, SurfaceDark, AccentBlue);
+        var detectBtn = DarkTheme.CreateButton("Detect", 498, y + 20, 82, 30);
         detectBtn.Click += DetectBtn_Click;
         Controls.Add(detectBtn);
         y += 60;
@@ -86,8 +80,8 @@ public sealed class AppEditDialog : Form
             Minimum = 0,
             Maximum = 60,
             Value = Math.Clamp(ResultApp.LaunchDelaySeconds, 0, 60),
-            BackColor = InputDark,
-            ForeColor = TextPrimary,
+            BackColor = DarkTheme.Elevated,
+            ForeColor = DarkTheme.TextPrimary,
             BorderStyle = BorderStyle.FixedSingle
         };
         Controls.Add(_delayNumeric);
@@ -99,7 +93,7 @@ public sealed class AppEditDialog : Form
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.Enabled,
-            ForeColor = TextPrimary
+            ForeColor = DarkTheme.TextPrimary
         };
         Controls.Add(_enabledCheck);
         y += 26;
@@ -110,7 +104,7 @@ public sealed class AppEditDialog : Form
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.CloseOnGameExit,
-            ForeColor = TextPrimary
+            ForeColor = DarkTheme.TextPrimary
         };
         Controls.Add(_closeOnExitCheck);
         y += 26;
@@ -121,7 +115,7 @@ public sealed class AppEditDialog : Form
             Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.RunAsAdmin,
-            ForeColor = TextMuted
+            ForeColor = DarkTheme.TextSecondary
         };
         Controls.Add(_runAsAdminCheck);
         y += 30;
@@ -131,16 +125,16 @@ public sealed class AppEditDialog : Form
             Text = "Tip: Pick any open/installed app above, browse for an .exe, or paste a steam://rungameid/ URL.",
             Location = new Point(20, y),
             Size = new Size(560, 22),
-            ForeColor = TextMuted,
+            ForeColor = DarkTheme.TextSecondary,
             Font = new Font("Segoe UI", 8.5f)
         };
         Controls.Add(_hintLabel);
 
-        var cancelBtn = CreateButton("Cancel", 400, 392, 86, SurfaceDark, TextPrimary);
+        var cancelBtn = DarkTheme.CreateButton("Cancel", 400, 392, 86, 30);
         cancelBtn.DialogResult = DialogResult.Cancel;
         Controls.Add(cancelBtn);
 
-        var saveBtn = CreateButton("Save", 494, 392, 86, AccentBlue, Color.FromArgb(15, 23, 42));
+        var saveBtn = DarkTheme.CreateButton("Save", 494, 392, 86, 30, primary: true);
         saveBtn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
         saveBtn.Click += SaveBtn_Click;
         Controls.Add(saveBtn);
@@ -158,7 +152,7 @@ public sealed class AppEditDialog : Form
             _nameBox.Text = picked.Name;
             _pathBox.Text = picked.ExecutablePath;
             _processBox.Text = picked.ProcessName;
-            _hintLabel.ForeColor = Color.FromArgb(34, 197, 94);
+            _hintLabel.ForeColor = DarkTheme.Success;
             _hintLabel.Text = $"Selected ({picked.Source}): {picked.ExecutablePath}";
         }
     }
@@ -211,12 +205,12 @@ public sealed class AppEditDialog : Form
                     _processBox.Text = Path.GetFileNameWithoutExtension(detected.Path);
                 }
 
-                _hintLabel.ForeColor = Color.FromArgb(34, 197, 94);
+                _hintLabel.ForeColor = DarkTheme.Success;
                 _hintLabel.Text = $"Found ({detected.Source}): {detected.Path}";
             }
             else
             {
-                _hintLabel.ForeColor = Color.FromArgb(245, 158, 11);
+                _hintLabel.ForeColor = DarkTheme.Warning;
                 _hintLabel.Text = "Not found automatically. Use 'Pick from...' or 'Browse .exe...' above.";
             }
         }
@@ -262,7 +256,7 @@ public sealed class AppEditDialog : Form
         Text = text,
         Location = new Point(x, y),
         AutoSize = true,
-        ForeColor = TextMuted
+        ForeColor = DarkTheme.TextSecondary
     };
 
     private static TextBox CreateTextBox(int x, int y, int width, string value) => new()
@@ -270,25 +264,8 @@ public sealed class AppEditDialog : Form
         Text = value,
         Location = new Point(x, y),
         Size = new Size(width, 26),
-        BackColor = InputDark,
-        ForeColor = TextPrimary,
+        BackColor = DarkTheme.Elevated,
+        ForeColor = DarkTheme.TextPrimary,
         BorderStyle = BorderStyle.FixedSingle
     };
-
-    private static Button CreateButton(string text, int x, int y, int width, Color backColor, Color foreColor)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            Location = new Point(x, y),
-            Size = new Size(width, 30),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = backColor,
-            ForeColor = foreColor,
-            Cursor = Cursors.Hand
-        };
-        btn.FlatAppearance.BorderColor = Color.FromArgb(46, 55, 72);
-        btn.FlatAppearance.BorderSize = 1;
-        return btn;
-    }
 }

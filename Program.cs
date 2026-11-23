@@ -28,6 +28,9 @@ internal static class Program
         }
 
         ApplicationConfiguration.Initialize();
+#pragma warning disable WFO5001
+        Application.SetColorMode(SystemColorMode.Dark);
+#pragma warning restore WFO5001
 
         var startMinimized = args.Any(a =>
             a.Equals("--minimized", StringComparison.OrdinalIgnoreCase) ||
