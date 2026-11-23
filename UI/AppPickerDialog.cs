@@ -31,8 +31,8 @@ public sealed class AppPickerDialog : Form
 
         Text = "Pick an Application";
         FormBorderStyle = FormBorderStyle.Sizable;
-        MinimumSize = new Size(680, 460);
-        Size = new Size(740, 520);
+        MinimumSize = new Size(700, 480);
+        Size = new Size(780, 540);
         StartPosition = FormStartPosition.CenterParent;
         BackColor = DarkTheme.Background;
         ForeColor = DarkTheme.TextPrimary;
@@ -47,55 +47,94 @@ public sealed class AppPickerDialog : Form
             Padding = new Padding(14),
             BackColor = DarkTheme.Background
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         Controls.Add(root);
 
         // 1. Mode tabs
-        var tabPanel = new Panel { Size = new Size(682, 42), Dock = DockStyle.Fill, BackColor = DarkTheme.Background };
-        _runningTabBtn = DarkTheme.CreateButton("Running Apps", 0, 2, 140, 32);
+        var tabRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = DarkTheme.Background,
+            Margin = new Padding(0, 0, 0, 8)
+        };
+        tabRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        tabRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        var tabsFlow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            Margin = new Padding(0)
+        };
+
+        _runningTabBtn = DarkTheme.CreateAutoButton("Running Apps");
         _runningTabBtn.Click += async (_, _) => await SwitchModeAsync(AppPickerMode.Running);
 
-        _installedTabBtn = DarkTheme.CreateButton("Installed Apps (Start Menu & Steam)", 148, 2, 255, 32);
+        _installedTabBtn = DarkTheme.CreateAutoButton("Installed Apps (Start Menu & Steam)");
         _installedTabBtn.Click += async (_, _) => await SwitchModeAsync(AppPickerMode.Installed);
 
-        _refreshBtn = DarkTheme.CreateButton("Refresh", 590, 2, 92, 32);
-        _refreshBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        tabsFlow.Controls.AddRange(new Control[] { _runningTabBtn, _installedTabBtn });
+
+        _refreshBtn = DarkTheme.CreateAutoButton("Refresh");
+        _refreshBtn.Margin = new Padding(8, 0, 0, 0);
         _refreshBtn.Click += async (_, _) =>
         {
             if (_mode == AppPickerMode.Installed) _cachedInstalled = null;
             await LoadItemsAsync();
         };
 
-        tabPanel.Controls.AddRange(new Control[] { _runningTabBtn, _installedTabBtn, _refreshBtn });
-        root.Controls.Add(tabPanel, 0, 0);
+        tabRow.Controls.Add(tabsFlow, 0, 0);
+        tabRow.Controls.Add(_refreshBtn, 1, 0);
+        root.Controls.Add(tabRow, 0, 0);
 
         // 2. Search bar
-        var searchPanel = new Panel { Size = new Size(682, 40), Dock = DockStyle.Fill, BackColor = DarkTheme.Background, Padding = new Padding(0, 4, 0, 6) };
+        var searchRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = DarkTheme.Background,
+            Margin = new Padding(0, 0, 0, 10)
+        };
+        searchRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        searchRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
         var searchLabel = new Label
         {
             Text = "Search:",
             AutoSize = true,
             ForeColor = DarkTheme.TextSecondary,
-            Location = new Point(0, 8)
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 4, 10, 4)
         };
+
         _searchBox = new TextBox
         {
-            Location = new Point(58, 5),
-            Size = new Size(624, 26),
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            Dock = DockStyle.Fill,
             BackColor = DarkTheme.Elevated,
             ForeColor = DarkTheme.TextPrimary,
             BorderStyle = BorderStyle.FixedSingle,
-            PlaceholderText = "Type an app name or path to filter..."
+            PlaceholderText = "Type an app name or path to filter...",
+            Margin = new Padding(0)
         };
         _searchBox.TextChanged += (_, _) => ApplyFilter();
 
-        searchPanel.Controls.Add(searchLabel);
-        searchPanel.Controls.Add(_searchBox);
-        root.Controls.Add(searchPanel, 0, 1);
+        searchRow.Controls.Add(searchLabel, 0, 0);
+        searchRow.Controls.Add(_searchBox, 1, 0);
+        root.Controls.Add(searchRow, 0, 1);
 
         // 3. Grid
         _grid = new DataGridView
@@ -152,25 +191,48 @@ public sealed class AppPickerDialog : Form
         root.Controls.Add(_grid, 0, 2);
 
         // 4. Footer
-        var footer = new Panel { Size = new Size(682, 44), Dock = DockStyle.Fill, BackColor = DarkTheme.Background };
+        var footer = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = DarkTheme.Background,
+            Margin = new Padding(0, 10, 0, 0)
+        };
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
         _statusLabel = new Label
         {
             Text = "Loading...",
             AutoSize = true,
             ForeColor = DarkTheme.TextSecondary,
-            Location = new Point(0, 14)
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 6, 0, 6)
         };
 
-        var cancelBtn = DarkTheme.CreateButton("Cancel", 494, 8, 88, 32);
-        cancelBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        var footerBtns = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Margin = new Padding(0)
+        };
+
+        var cancelBtn = DarkTheme.CreateAutoButton("Cancel");
         cancelBtn.DialogResult = DialogResult.Cancel;
 
-        _selectBtn = DarkTheme.CreateButton("Select", 590, 8, 92, 32, primary: true);
+        _selectBtn = DarkTheme.CreateAutoButton("Select", primary: true);
         _selectBtn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-        _selectBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _selectBtn.Margin = new Padding(0);
         _selectBtn.Click += (_, _) => ConfirmSelection();
 
-        footer.Controls.AddRange(new Control[] { _statusLabel, cancelBtn, _selectBtn });
+        footerBtns.Controls.AddRange(new Control[] { cancelBtn, _selectBtn });
+        footer.Controls.Add(_statusLabel, 0, 0);
+        footer.Controls.Add(footerBtns, 1, 0);
         root.Controls.Add(footer, 0, 3);
 
         AcceptButton = _selectBtn;

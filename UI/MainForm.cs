@@ -113,21 +113,38 @@ public sealed class MainForm : Form
             Padding = new Padding(16),
             BackColor = DarkTheme.Background
         };
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 68));
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 86));
-        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
+        rootLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Header
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Toolbar
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 60));   // Grid
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // Settings
+        rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 40));   // Log
         Controls.Add(rootLayout);
 
-        // 1. Header
-        var headerPanel = new Panel
+        // 1. Header (DPI-safe TableLayoutPanel)
+        var headerPanel = new TableLayoutPanel
         {
-            Size = new Size(900, 68),
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
             BackColor = DarkTheme.Surface,
-            Padding = new Padding(16, 10, 16, 10),
+            Padding = new Padding(16, 12, 16, 12),
             Margin = new Padding(0, 0, 0, 10)
+        };
+        headerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        headerPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        var titleStack = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
         };
 
         var titleLabel = new Label
@@ -136,7 +153,7 @@ public sealed class MainForm : Form
             Font = new Font("Segoe UI", 13.5f, FontStyle.Bold),
             ForeColor = DarkTheme.TextPrimary,
             AutoSize = true,
-            Location = new Point(16, 8)
+            Margin = new Padding(0, 0, 0, 4)
         };
 
         var subtitleLabel = new Label
@@ -145,61 +162,80 @@ public sealed class MainForm : Form
             Font = new Font("Segoe UI", 8.8f),
             ForeColor = DarkTheme.TextSecondary,
             AutoSize = true,
-            Location = new Point(17, 34)
+            Margin = new Padding(0)
         };
+
+        titleStack.Controls.Add(titleLabel, 0, 0);
+        titleStack.Controls.Add(subtitleLabel, 0, 1);
 
         _statusBadge = new Label
         {
             Text = "●  Waiting: ETS 2",
-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+            Font = new Font("Segoe UI", 9.2f, FontStyle.Bold),
             ForeColor = DarkTheme.TextPrimary,
             BackColor = DarkTheme.Elevated,
-            AutoSize = false,
-            Size = new Size(215, 32),
+            AutoSize = true,
+            MinimumSize = new Size(180, 32),
+            Padding = new Padding(14, 6, 14, 6),
             TextAlign = ContentAlignment.MiddleCenter,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(headerPanel.Width - 231, 14)
+            Anchor = AnchorStyles.Right,
+            Margin = new Padding(12, 0, 0, 0)
         };
 
-        headerPanel.Controls.Add(titleLabel);
-        headerPanel.Controls.Add(subtitleLabel);
-        headerPanel.Controls.Add(_statusBadge);
+        headerPanel.Controls.Add(titleStack, 0, 0);
+        headerPanel.Controls.Add(_statusBadge, 1, 0);
         rootLayout.Controls.Add(headerPanel, 0, 0);
 
-        // 2. Action Toolbar
-        var toolbarPanel = new Panel
+        // 2. Action Toolbar (DPI-safe TableLayoutPanel + FlowLayoutPanel)
+        var toolbarPanel = new TableLayoutPanel
         {
-            Size = new Size(900, 46),
-            Dock = DockStyle.Fill,
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
             BackColor = DarkTheme.Background,
-            Margin = new Padding(0, 0, 0, 6)
+            Margin = new Padding(0, 0, 0, 8)
+        };
+        toolbarPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        toolbarPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        var leftButtons = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
         };
 
-        _addAppBtn = DarkTheme.CreateButton("+ Add App ▾", 0, 4, 118, 32, primary: true);
+        _addAppBtn = CreateAutoButton("+ Add App ▾", primary: true);
         _addAppBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
         _addAppBtn.Click += (_, _) => _addMenu.Show(_addAppBtn, new Point(0, _addAppBtn.Height));
 
-        _presetsBtn = DarkTheme.CreateButton("Presets ▾", 126, 4, 104, 32);
+        _presetsBtn = CreateAutoButton("Presets ▾");
         _presetsBtn.Click += (_, _) => _presetsMenu.Show(_presetsBtn, new Point(0, _presetsBtn.Height));
 
-        var editBtn = DarkTheme.CreateButton("Edit", 238, 4, 78, 32);
+        var editBtn = CreateAutoButton("Edit");
         editBtn.Click += (_, _) => EditSelectedApp();
 
-        var removeBtn = DarkTheme.CreateButton("Remove", 324, 4, 84, 32, foreColorOverride: DarkTheme.Danger);
+        var removeBtn = CreateAutoButton("Remove", foreColorOverride: DarkTheme.Danger);
         removeBtn.Click += (_, _) => DeleteSelectedApp();
 
-        _autoDetectBtn = DarkTheme.CreateButton("Detect Missing Paths", 416, 4, 152, 32, foreColorOverride: DarkTheme.TextSecondary);
+        _autoDetectBtn = CreateAutoButton("Detect Missing Paths", foreColorOverride: DarkTheme.TextSecondary);
         _autoDetectBtn.Click += async (_, _) => await RunAutoDetectAsync(forceRescan: false);
 
-        _launchNowBtn = DarkTheme.CreateButton("Launch Now (Test)", toolbarPanel.Width - 165, 4, 165, 32);
+        leftButtons.Controls.AddRange(new Control[] { _addAppBtn, _presetsBtn, editBtn, removeBtn, _autoDetectBtn });
+
+        _launchNowBtn = CreateAutoButton("Launch Now (Test)");
         _launchNowBtn.Font = new Font("Segoe UI", 9.2f, FontStyle.Bold);
-        _launchNowBtn.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _launchNowBtn.Margin = new Padding(8, 0, 0, 0);
         _launchNowBtn.Click += async (_, _) => await RunManualLaunchAsync();
 
-        toolbarPanel.Controls.AddRange(new Control[]
-        {
-            _addAppBtn, _presetsBtn, editBtn, removeBtn, _autoDetectBtn, _launchNowBtn
-        });
+        toolbarPanel.Controls.Add(leftButtons, 0, 0);
+        toolbarPanel.Controls.Add(_launchNowBtn, 1, 0);
         rootLayout.Controls.Add(toolbarPanel, 0, 1);
 
         // 3. Apps Grid + Empty State Overlay
@@ -236,32 +272,50 @@ public sealed class MainForm : Form
         _emptyStateLabel.BringToFront();
         rootLayout.Controls.Add(gridContainer, 0, 2);
 
-        // 4. Settings Panel
-        var settingsPanel = new Panel
+        // 4. Settings Panel (DPI-safe two-row FlowLayoutPanel inside TableLayoutPanel)
+        var settingsPanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = DarkTheme.Surface,
+            Padding = new Padding(14, 12, 14, 12),
+            Margin = new Padding(0, 10, 0, 10)
+        };
+        settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        settingsPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        settingsPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        var settingsRow1 = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
-            BackColor = DarkTheme.Surface,
-            Padding = new Padding(14, 10, 14, 10),
-            Margin = new Padding(0, 10, 0, 10)
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 0, 8)
         };
 
         _startupCheck = new CheckBox
         {
             Text = "Start minimized with Windows",
-            Location = new Point(14, 12),
             AutoSize = true,
             ForeColor = DarkTheme.TextPrimary,
-            Checked = StartupService.IsEnabled()
+            Checked = StartupService.IsEnabled(),
+            Margin = new Padding(0, 2, 22, 2)
         };
         _startupCheck.CheckedChanged += StartupCheck_CheckedChanged;
 
         _notifyCheck = new CheckBox
         {
             Text = "Show tray notifications",
-            Location = new Point(250, 12),
             AutoSize = true,
             ForeColor = DarkTheme.TextPrimary,
-            Checked = _config.ShowNotifications
+            Checked = _config.ShowNotifications,
+            Margin = new Padding(0, 2, 22, 2)
         };
         _notifyCheck.CheckedChanged += (_, _) =>
         {
@@ -273,9 +327,9 @@ public sealed class MainForm : Form
         _pauseCheck = new CheckBox
         {
             Text = "Pause watching",
-            Location = new Point(445, 12),
             AutoSize = true,
-            ForeColor = DarkTheme.TextSecondary
+            ForeColor = DarkTheme.TextSecondary,
+            Margin = new Padding(0, 2, 0, 2)
         };
         _pauseCheck.CheckedChanged += (_, _) =>
         {
@@ -283,80 +337,114 @@ public sealed class MainForm : Form
             _watcher?.SetPaused(_pauseCheck.Checked);
         };
 
+        settingsRow1.Controls.AddRange(new Control[] { _startupCheck, _notifyCheck, _pauseCheck });
+
+        var settingsRow2 = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+
         var watchLabel = new Label
         {
             Text = "Watch games:",
-            Location = new Point(14, 44),
             AutoSize = true,
-            ForeColor = DarkTheme.TextSecondary
+            ForeColor = DarkTheme.TextSecondary,
+            Margin = new Padding(0, 6, 12, 4)
         };
 
         _ets2Check = new CheckBox
         {
             Text = "ETS 2 (eurotrucks2)",
-            Location = new Point(112, 42),
             AutoSize = true,
             ForeColor = DarkTheme.TextPrimary,
-            Checked = _config.WatchEts2
+            Checked = _config.WatchEts2,
+            Margin = new Padding(0, 5, 18, 4)
         };
         _ets2Check.CheckedChanged += GameToggle_CheckedChanged;
 
         _atsCheck = new CheckBox
         {
             Text = "ATS (amtrucks)",
-            Location = new Point(268, 42),
             AutoSize = true,
             ForeColor = DarkTheme.TextPrimary,
-            Checked = _config.WatchAts
+            Checked = _config.WatchAts,
+            Margin = new Padding(0, 5, 22, 4)
         };
         _atsCheck.CheckedChanged += GameToggle_CheckedChanged;
 
         var extraLabel = new Label
         {
             Text = "Extra process(es):",
-            Location = new Point(405, 44),
             AutoSize = true,
-            ForeColor = DarkTheme.TextSecondary
+            ForeColor = DarkTheme.TextSecondary,
+            Margin = new Padding(0, 6, 8, 4)
         };
 
         _customProcessBox = new TextBox
         {
             Text = _config.CustomWatchedProcesses,
-            Location = new Point(522, 41),
-            Size = new Size(210, 24),
+            Width = 220,
             BackColor = DarkTheme.Elevated,
             ForeColor = DarkTheme.TextPrimary,
             BorderStyle = BorderStyle.FixedSingle,
-            PlaceholderText = "optional, comma-separated"
+            PlaceholderText = "optional, comma-separated",
+            Margin = new Padding(0, 2, 8, 2)
         };
 
-        var applyProcessBtn = DarkTheme.CreateButton("Apply", 740, 39, 76, 26);
+        var applyProcessBtn = CreateAutoButton("Apply");
+        applyProcessBtn.Padding = new Padding(12, 2, 12, 2);
+        applyProcessBtn.Margin = new Padding(0, 1, 0, 1);
         applyProcessBtn.Click += SaveCustomProcesses_Click;
 
-        settingsPanel.Controls.AddRange(new Control[]
+        settingsRow2.Controls.AddRange(new Control[]
         {
-            _startupCheck, _notifyCheck, _pauseCheck,
             watchLabel, _ets2Check, _atsCheck,
             extraLabel, _customProcessBox, applyProcessBtn
         });
+
+        settingsPanel.Controls.Add(settingsRow1, 0, 0);
+        settingsPanel.Controls.Add(settingsRow2, 0, 1);
         rootLayout.Controls.Add(settingsPanel, 0, 3);
 
-        // 5. Log Panel
-        var logContainer = new Panel
+        // 5. Log Panel (DPI-safe header row + log box)
+        var logContainer = new TableLayoutPanel
         {
-            Size = new Size(900, 160),
             Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
             BackColor = DarkTheme.Surface,
             Padding = new Padding(12, 8, 12, 10)
         };
+        logContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        logContainer.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        logContainer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var logHeaderRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 0, 6)
+        };
+        logHeaderRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        logHeaderRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
         var logHeader = new Label
         {
             Text = "Activity Log",
-            Dock = DockStyle.Top,
-            Height = 22,
+            AutoSize = true,
             ForeColor = DarkTheme.TextSecondary,
-            Font = new Font("Segoe UI", 8.8f, FontStyle.Bold)
+            Font = new Font("Segoe UI", 8.8f, FontStyle.Bold),
+            Margin = new Padding(0)
         };
 
         _logBox = new TextBox
@@ -368,7 +456,8 @@ public sealed class MainForm : Form
             BackColor = DarkTheme.LogBackground,
             ForeColor = Color.FromArgb(208, 208, 208),
             BorderStyle = BorderStyle.None,
-            Font = new Font("Consolas", 9f)
+            Font = new Font("Consolas", 9f),
+            Margin = new Padding(0)
         };
 
         var clearLogBtn = new LinkLabel
@@ -378,15 +467,15 @@ public sealed class MainForm : Form
             LinkColor = DarkTheme.TextSecondary,
             ActiveLinkColor = DarkTheme.TextPrimary,
             VisitedLinkColor = DarkTheme.TextSecondary,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(logContainer.Width - 54, 8)
+            Anchor = AnchorStyles.Right,
+            Margin = new Padding(0)
         };
         clearLogBtn.Click += (_, _) => _logBox.Clear();
 
-        logContainer.Controls.Add(_logBox);
-        logContainer.Controls.Add(clearLogBtn);
-        logContainer.Controls.Add(logHeader);
-        clearLogBtn.BringToFront();
+        logHeaderRow.Controls.Add(logHeader, 0, 0);
+        logHeaderRow.Controls.Add(clearLogBtn, 1, 0);
+        logContainer.Controls.Add(logHeaderRow, 0, 0);
+        logContainer.Controls.Add(_logBox, 0, 1);
         rootLayout.Controls.Add(logContainer, 0, 4);
 
         // Initialize Watcher
@@ -1078,4 +1167,7 @@ public sealed class MainForm : Form
         grid.Columns.AddRange(colEnabled, colName, colPath, colDelay, colClose, colStatus);
         return grid;
     }
+
+    private static Button CreateAutoButton(string text, bool primary = false, Color? foreColorOverride = null) =>
+        DarkTheme.CreateAutoButton(text, primary, foreColorOverride);
 }

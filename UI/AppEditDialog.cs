@@ -27,56 +27,133 @@ public sealed class AppEditDialog : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
-        ClientSize = new Size(600, 442);
+        AutoSize = true;
+        AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        MinimumSize = new Size(640, 0);
         BackColor = DarkTheme.Background;
         ForeColor = DarkTheme.TextPrimary;
         Font = new Font("Segoe UI", 9.5f);
         DarkTheme.ApplyDarkTitleBar(this);
 
-        var y = 18;
+        var root = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            Padding = new Padding(18),
+            BackColor = DarkTheme.Background
+        };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        Controls.Add(root);
 
-        // Quick-pick bar at top
-        var pickRunningBtn = DarkTheme.CreateButton("Pick from Running Apps...", 20, y, 185, 30);
+        int row = 0;
+
+        // 1. Quick-pick buttons
+        var quickPickFlow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            Margin = new Padding(0, 0, 0, 12)
+        };
+
+        var pickRunningBtn = DarkTheme.CreateAutoButton("Pick from Running Apps...");
         pickRunningBtn.Click += (_, _) => OpenPicker(AppPickerMode.Running);
-        Controls.Add(pickRunningBtn);
 
-        var pickInstalledBtn = DarkTheme.CreateButton("Pick from Installed / Start Menu...", 213, y, 225, 30);
+        var pickInstalledBtn = DarkTheme.CreateAutoButton("Pick from Installed / Start Menu...");
         pickInstalledBtn.Click += (_, _) => OpenPicker(AppPickerMode.Installed);
-        Controls.Add(pickInstalledBtn);
 
-        var browseTopBtn = DarkTheme.CreateButton("Browse .exe...", 446, y, 134, 30);
+        var browseTopBtn = DarkTheme.CreateAutoButton("Browse .exe...");
+        browseTopBtn.Margin = new Padding(0);
         browseTopBtn.Click += BrowseBtn_Click;
-        Controls.Add(browseTopBtn);
-        y += 46;
 
-        Controls.Add(CreateLabel("Application Name:", 20, y));
-        _nameBox = CreateTextBox(20, y + 22, 560, ResultApp.Name);
-        Controls.Add(_nameBox);
-        y += 60;
+        quickPickFlow.Controls.AddRange(new Control[] { pickRunningBtn, pickInstalledBtn, browseTopBtn });
+        root.Controls.Add(quickPickFlow, 0, row++);
 
-        Controls.Add(CreateLabel("Executable Path (.exe / .lnk) or Steam URL (steam://rungameid/...):", 20, y));
-        _pathBox = CreateTextBox(20, y + 22, 470, ResultApp.ExecutablePath);
-        Controls.Add(_pathBox);
+        // 2. Application Name
+        root.Controls.Add(CreateFieldLabel("Application Name:"), 0, row++);
+        _nameBox = CreateTextBox(ResultApp.Name);
+        _nameBox.Margin = new Padding(0, 0, 0, 12);
+        root.Controls.Add(_nameBox, 0, row++);
 
-        var detectBtn = DarkTheme.CreateButton("Detect", 498, y + 20, 82, 30);
+        // 3. Path + Detect button
+        root.Controls.Add(CreateFieldLabel("Executable Path (.exe / .lnk) or Steam URL (steam://rungameid/...):"), 0, row++);
+        var pathRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            Margin = new Padding(0, 0, 0, 12)
+        };
+        pathRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        pathRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+        _pathBox = CreateTextBox(ResultApp.ExecutablePath);
+        _pathBox.Margin = new Padding(0, 2, 8, 2);
+
+        var detectBtn = DarkTheme.CreateAutoButton("Detect");
+        detectBtn.Margin = new Padding(0);
         detectBtn.Click += DetectBtn_Click;
-        Controls.Add(detectBtn);
-        y += 60;
 
-        Controls.Add(CreateLabel("Launch Arguments (optional):", 20, y));
-        _argsBox = CreateTextBox(20, y + 22, 270, ResultApp.Arguments);
-        Controls.Add(_argsBox);
+        pathRow.Controls.Add(_pathBox, 0, 0);
+        pathRow.Controls.Add(detectBtn, 1, 0);
+        root.Controls.Add(pathRow, 0, row++);
 
-        Controls.Add(CreateLabel("Process Name (for running check):", 310, y));
-        _processBox = CreateTextBox(310, y + 22, 270, ResultApp.ProcessName);
-        Controls.Add(_processBox);
-        y += 60;
+        // 4. Arguments & Process Name (2 columns)
+        var dualRow = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 2,
+            Margin = new Padding(0, 0, 0, 12)
+        };
+        dualRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        dualRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
 
-        Controls.Add(CreateLabel("Launch Delay (seconds):", 20, y + 3));
+        var argsLabel = CreateFieldLabel("Launch Arguments (optional):");
+        argsLabel.Margin = new Padding(0, 0, 10, 4);
+        var procLabel = CreateFieldLabel("Process Name (for running check):");
+        procLabel.Margin = new Padding(10, 0, 0, 4);
+
+        _argsBox = CreateTextBox(ResultApp.Arguments);
+        _argsBox.Margin = new Padding(0, 0, 10, 0);
+        _processBox = CreateTextBox(ResultApp.ProcessName);
+        _processBox.Margin = new Padding(10, 0, 0, 0);
+
+        dualRow.Controls.Add(argsLabel, 0, 0);
+        dualRow.Controls.Add(procLabel, 1, 0);
+        dualRow.Controls.Add(_argsBox, 0, 1);
+        dualRow.Controls.Add(_processBox, 1, 1);
+        root.Controls.Add(dualRow, 0, row++);
+
+        // 5. Launch delay
+        var delayRow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Margin = new Padding(0, 0, 0, 12)
+        };
+
+        var delayLabel = new Label
+        {
+            Text = "Launch Delay (seconds):",
+            AutoSize = true,
+            ForeColor = DarkTheme.TextSecondary,
+            Margin = new Padding(0, 5, 12, 0)
+        };
+
         _delayNumeric = new NumericUpDown
         {
-            Location = new Point(185, y),
-            Size = new Size(80, 28),
+            Width = 84,
             Minimum = 0,
             Maximum = 60,
             Value = Math.Clamp(ResultApp.LaunchDelaySeconds, 0, 60),
@@ -84,60 +161,77 @@ public sealed class AppEditDialog : Form
             ForeColor = DarkTheme.TextPrimary,
             BorderStyle = BorderStyle.FixedSingle
         };
-        Controls.Add(_delayNumeric);
-        y += 38;
 
+        delayRow.Controls.Add(delayLabel);
+        delayRow.Controls.Add(_delayNumeric);
+        root.Controls.Add(delayRow, 0, row++);
+
+        // 6. Checkboxes
         _enabledCheck = new CheckBox
         {
             Text = "Launch automatically when game starts",
-            Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.Enabled,
-            ForeColor = DarkTheme.TextPrimary
+            ForeColor = DarkTheme.TextPrimary,
+            Margin = new Padding(0, 0, 0, 6)
         };
-        Controls.Add(_enabledCheck);
-        y += 26;
+        root.Controls.Add(_enabledCheck, 0, row++);
 
         _closeOnExitCheck = new CheckBox
         {
             Text = "Close automatically when game exits",
-            Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.CloseOnGameExit,
-            ForeColor = DarkTheme.TextPrimary
+            ForeColor = DarkTheme.TextPrimary,
+            Margin = new Padding(0, 0, 0, 6)
         };
-        Controls.Add(_closeOnExitCheck);
-        y += 26;
+        root.Controls.Add(_closeOnExitCheck, 0, row++);
 
         _runAsAdminCheck = new CheckBox
         {
             Text = "Run as administrator (may trigger UAC prompt)",
-            Location = new Point(20, y),
             AutoSize = true,
             Checked = ResultApp.RunAsAdmin,
-            ForeColor = DarkTheme.TextSecondary
+            ForeColor = DarkTheme.TextSecondary,
+            Margin = new Padding(0, 0, 0, 12)
         };
-        Controls.Add(_runAsAdminCheck);
-        y += 30;
+        root.Controls.Add(_runAsAdminCheck, 0, row++);
 
+        // 7. Hint label
         _hintLabel = new Label
         {
             Text = "Tip: Pick any open/installed app above, browse for an .exe, or paste a steam://rungameid/ URL.",
-            Location = new Point(20, y),
-            Size = new Size(560, 22),
+            AutoSize = true,
+            MaximumSize = new Size(600, 0),
             ForeColor = DarkTheme.TextSecondary,
-            Font = new Font("Segoe UI", 8.5f)
+            Font = new Font("Segoe UI", 8.5f),
+            Margin = new Padding(0, 0, 0, 14)
         };
-        Controls.Add(_hintLabel);
+        root.Controls.Add(_hintLabel, 0, row++);
 
-        var cancelBtn = DarkTheme.CreateButton("Cancel", 400, 392, 86, 30);
-        cancelBtn.DialogResult = DialogResult.Cancel;
-        Controls.Add(cancelBtn);
+        // 8. Action buttons
+        var footerFlow = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Right,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.RightToLeft,
+            WrapContents = false,
+            Margin = new Padding(0)
+        };
 
-        var saveBtn = DarkTheme.CreateButton("Save", 494, 392, 86, 30, primary: true);
+        var saveBtn = DarkTheme.CreateAutoButton("Save", primary: true);
         saveBtn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+        saveBtn.Margin = new Padding(8, 0, 0, 0);
         saveBtn.Click += SaveBtn_Click;
-        Controls.Add(saveBtn);
+
+        var cancelBtn = DarkTheme.CreateAutoButton("Cancel");
+        cancelBtn.Margin = new Padding(0);
+        cancelBtn.DialogResult = DialogResult.Cancel;
+
+        footerFlow.Controls.Add(saveBtn);
+        footerFlow.Controls.Add(cancelBtn);
+        root.Controls.Add(footerFlow, 0, row++);
 
         AcceptButton = saveBtn;
         CancelButton = cancelBtn;
@@ -251,19 +345,18 @@ public sealed class AppEditDialog : Form
         Close();
     }
 
-    private static Label CreateLabel(string text, int x, int y) => new()
+    private static Label CreateFieldLabel(string text) => new()
     {
         Text = text,
-        Location = new Point(x, y),
         AutoSize = true,
-        ForeColor = DarkTheme.TextSecondary
+        ForeColor = DarkTheme.TextSecondary,
+        Margin = new Padding(0, 0, 0, 4)
     };
 
-    private static TextBox CreateTextBox(int x, int y, int width, string value) => new()
+    private static TextBox CreateTextBox(string value) => new()
     {
         Text = value,
-        Location = new Point(x, y),
-        Size = new Size(width, 26),
+        Dock = DockStyle.Fill,
         BackColor = DarkTheme.Elevated,
         ForeColor = DarkTheme.TextPrimary,
         BorderStyle = BorderStyle.FixedSingle

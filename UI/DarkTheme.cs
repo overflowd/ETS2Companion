@@ -99,6 +99,31 @@ public static class DarkTheme
         return btn;
     }
 
+    public static Button CreateAutoButton(string text, bool primary = false, Color? foreColorOverride = null)
+    {
+        var back = primary ? AccentPrimary : Elevated;
+        var fore = foreColorOverride ?? (primary ? AccentOnPrimary : TextPrimary);
+
+        var btn = new Button
+        {
+            Text = text,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(72, 32),
+            Padding = new Padding(12, 4, 12, 4),
+            Margin = new Padding(0, 0, 8, 0),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = back,
+            ForeColor = fore,
+            Cursor = Cursors.Hand
+        };
+        btn.FlatAppearance.BorderColor = primary ? AccentPrimary : Border;
+        btn.FlatAppearance.BorderSize = 1;
+        btn.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(215, 215, 215) : Hover;
+        btn.FlatAppearance.MouseDownBackColor = primary ? Color.FromArgb(195, 195, 195) : Selection;
+        return btn;
+    }
+
     private sealed class DarkMenuRenderer : ToolStripProfessionalRenderer
     {
         public DarkMenuRenderer() : base(new DarkColorTable())
