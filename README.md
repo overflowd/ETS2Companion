@@ -1,6 +1,22 @@
-# ETS 2 Companion Launcher
+<p align="center">
+  <img src="Assets/logo.png" width="112" height="112" alt="ETS 2 Companion Launcher Logo" />
+</p>
 
-A lightweight Windows system tray utility that automatically launches your chosen companion apps whenever **Euro Truck Simulator 2** (`eurotrucks2.exe`) or **American Truck Simulator** (`amtrucks.exe`) starts.
+<h1 align="center">ETS 2 Companion Launcher</h1>
+
+<p align="center">
+  Lightweight Windows system tray utility that automatically launches your chosen companion apps whenever <strong>Euro Truck Simulator 2</strong> (<code>eurotrucks2.exe</code>) or <strong>American Truck Simulator</strong> (<code>amtrucks.exe</code>) starts.
+</p>
+
+<p align="center">
+  <a href="https://github.com/overflowd/ETS2Companion/releases/latest">
+    <img src="https://img.shields.io/github/v/release/overflowd/ETS2Companion?style=for-the-badge&color=22C55E&labelColor=181818" alt="Latest Release" />
+  </a>
+  <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-262626?style=for-the-badge&labelColor=181818" alt="Platform Windows 10/11" />
+  <img src="https://img.shields.io/badge/.NET-9.0-262626?style=for-the-badge&labelColor=181818" alt=".NET 9" />
+</p>
+
+---
 
 Whether you use head-tracking software, upscalers, dashboard overlays, telemetry clients, or recording tools, add any programs you want and let them start automatically every time you hit the road.
 
@@ -14,7 +30,7 @@ Whether you use head-tracking software, upscalers, dashboard overlays, telemetry
 - **Quick-Add Presets:** Optional one-click presets with automatic path detection for popular trucking tools (Lossless Scaling, Beam Eye Tracker, LookPilot, WestPlay, OpenTrack, TrackIR, SimHub, TruckersMP, TrucksBook, CrewChief, OBS Studio, Discord).
 - **No Duplicate Launches:** Checks if a companion app is already running before starting it.
 - **Per-App Launch Delay & Auto-Close:** Set an individual delay (in seconds) for each app and optionally close apps automatically when the game exits.
-- **System Tray & Windows Startup:** Minimizes quietly to the system tray with a live status-colored icon and supports starting minimized with Windows.
+- **Pure Dark Mode & System Tray:** Neutral dark UI with native Windows dark title bar and dark context menus. Minimizes quietly to the system tray with a live status-colored icon and supports starting minimized with Windows.
 
 ## Requirements
 
@@ -48,5 +64,9 @@ Requires the [.NET 9 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/9.0
 dotnet publish -c Release -o publish --no-self-contained
 
 # Self-contained single-file build (runs on any Windows PC without installing .NET)
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish-standalone
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish-standalone
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
