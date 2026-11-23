@@ -19,11 +19,12 @@ Whether you use head-tracking software, upscalers, dashboard overlays, telemetry
 ## Requirements
 
 - Windows 10 / 11 (64-bit)
-- [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0) (if using the framework-dependent build)
+- **No prerequisites** for the `standalone` release build *(recommended)*
+- [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0) only if using the smaller `net9` build
 
 ## Quick Start
 
-1. Download the latest release (or build from source below) and run `ETS2CompanionLauncher.exe`.
+1. Download the latest build from the **[Releases](https://github.com/overflowd/ETS2Companion/releases/latest)** page (`standalone.zip` recommended), extract it, and run `ETS2CompanionLauncher.exe`.
 2. Click **+ Add App ▾** to pick any application from your running apps, installed apps, or file browser — or open **Presets ▾** to quick-add popular ETS 2 / ATS tools.
 3. Choose which game(s) to monitor (**ETS 2**, **ATS**, or custom processes).
 4. Click **Launch Now (Test)** to verify your companion apps open as expected.

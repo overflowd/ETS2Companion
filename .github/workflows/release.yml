@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Publish standalone single-file build (win-x64)
+        shell: pwsh
+        run: |
+          dotnet publish ETS2CompanionLauncher.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=none `
+            -p:DebugSymbols=false `
+            -o dist/standalone
+
+      - name: Publish framework-dependent build (win-x64)
+        shell: pwsh
+        run: |
+          dotnet publish ETS2CompanionLauncher.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:DebugType=none `
+            -p:DebugSymbols=false `
+            -o dist/framework-dependent
+
+      - name: Package release archives
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } else { 'v1.0.0' }
+          New-Item -ItemType Directory -Force -Path dist/artifacts | Out-Null
+
+          Compress-Archive -Path "dist/standalone/*" -DestinationPath "dist/artifacts/ETS2CompanionLauncher-$tag-win-x64-standalone.zip" -Force
+          Compress-Archive -Path "dist/framework-dependent/*" -DestinationPath "dist/artifacts/ETS2CompanionLauncher-$tag-win-x64-net9.zip" -Force
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $notes = @'
+          ## ETS 2 Companion Launcher {TAG}
+
+          Automatically launches your chosen companion apps whenever **Euro Truck Simulator 2** (`eurotrucks2.exe`) or **American Truck Simulator** (`amtrucks.exe`) starts.
+
+          ### Downloads
+          - **`ETS2CompanionLauncher-{TAG}-win-x64-standalone.zip`** *(Recommended)* — Single-file self-contained build. Works on Windows 10/11 (64-bit) with no prerequisites.
+          - **`ETS2CompanionLauncher-{TAG}-win-x64-net9.zip`** — Lightweight build for systems that already have the [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/9.0) installed.
+
+          ### Highlights
+          - Pure dark mode UI with dark Windows title bar & tray menus
+          - Quick toggles for **ETS 2**, **ATS**, and custom game processes
+          - **+ Add App** picker for Running Apps, Installed / Start Menu / Steam Apps, or custom `.exe` / `steam://` targets
+          - Optional **Presets** menu with auto-detection for popular tools (Lossless Scaling, Beam Eye Tracker, LookPilot, WestPlay, OpenTrack, TrackIR, SimHub, TruckersMP, TrucksBook, CrewChief, OBS Studio, Discord)
+          - Per-app launch delay, duplicate launch prevention, optional close-on-game-exit, and Windows startup minimized to tray
+          '@.Replace('{TAG}', $tag)
+
+          $notes | Out-File -FilePath "dist/release-notes.md" -Encoding utf8
+
+          gh release create $tag `
+            "dist/artifacts/ETS2CompanionLauncher-$tag-win-x64-standalone.zip" `
+            "dist/artifacts/ETS2CompanionLauncher-$tag-win-x64-net9.zip" `
+            --title "ETS 2 Companion Launcher $tag" `
+            --notes-file "dist/release-notes.md"
